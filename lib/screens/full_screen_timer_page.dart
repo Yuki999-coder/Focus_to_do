@@ -1,7 +1,7 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../flip_digit.dart';
+import '../services/timer_service.dart';
 
 class FullScreenTimerPage extends StatefulWidget {
   const FullScreenTimerPage({super.key});
@@ -11,43 +11,15 @@ class FullScreenTimerPage extends StatefulWidget {
 }
 
 class _FullScreenTimerPageState extends State<FullScreenTimerPage> {
-  // Default 25 minutes in seconds
-  int totalSeconds = 25 * 60;
-  Timer? _timer;
-  bool isPaused = false;
-
   @override
   void initState() {
     super.initState();
     // Hide status bar and navigation bar for immersive experience
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    startTimer();
-  }
-
-  void startTimer() {
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!isPaused) {
-        if (totalSeconds > 0) {
-          setState(() {
-            totalSeconds--;
-          });
-        } else {
-          _timer?.cancel();
-          // Optionally handle timer completion here
-        }
-      }
-    });
-  }
-
-  void togglePause() {
-    setState(() {
-      isPaused = !isPaused;
-    });
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
     // Restore system UI overlays when leaving the page
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
@@ -55,62 +27,81 @@ class _FullScreenTimerPageState extends State<FullScreenTimerPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Calculate digits
-    final minutes = totalSeconds ~/ 60;
-    final seconds = totalSeconds % 60;
+    final timerService = TimerService();
 
-    final minTens = minutes ~/ 10;
-    final minOnes = minutes % 10;
-    final secTens = seconds ~/ 10;
-    final secOnes = seconds % 10;
+    return ListenableBuilder(
+      listenable: timerService,
+      builder: (context, child) {
+        final totalSeconds = timerService.remainingSeconds;
+        final isRunning = timerService.isRunning;
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // Main Timer Display
-          Center(
-            child: OrientationBuilder(
-              builder: (context, orientation) {
-                if (orientation == Orientation.portrait) {
-                  return _buildPortraitLayout(minTens, minOnes, secTens, secOnes);
-                } else {
-                  return _buildLandscapeLayout(minTens, minOnes, secTens, secOnes);
-                }
-              },
-            ),
-          ),
+        // Calculate digits
+        final minutes = totalSeconds ~/ 60;
+        final seconds = totalSeconds % 60;
 
-          // Controls (Bottom Center)
-          Positioned(
-            bottom: 30,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Pause/Resume Button
-                FloatingActionButton(
-                  heroTag: 'pause_resume',
-                  backgroundColor: Colors.white24,
-                  foregroundColor: Colors.white,
-                  onPressed: togglePause,
-                  child: Icon(isPaused ? Icons.play_arrow : Icons.pause),
+        final minTens = minutes ~/ 10;
+        final minOnes = minutes % 10;
+        final secTens = seconds ~/ 10;
+        final secOnes = seconds % 10;
+
+        return Scaffold(
+          backgroundColor: Colors.black,
+          body: Stack(
+            children: [
+              // Main Timer Display
+              Center(
+                child: OrientationBuilder(
+                  builder: (context, orientation) {
+                    if (orientation == Orientation.portrait) {
+                      return _buildPortraitLayout(minTens, minOnes, secTens, secOnes);
+                    } else {
+                      return _buildLandscapeLayout(minTens, minOnes, secTens, secOnes);
+                    }
+                  },
                 ),
-                const SizedBox(width: 20),
-                // Stop/Exit Button
-                FloatingActionButton(
-                  heroTag: 'stop_exit',
-                  backgroundColor: Colors.white24,
-                  foregroundColor: Colors.white,
-                  onPressed: () => Navigator.pop(context),
-                  child: const Icon(Icons.stop),
+              ),
+
+              // Controls (Bottom Center)
+              Positioned(
+                bottom: 30,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Pause/Resume Button
+                    FloatingActionButton(
+                      heroTag: 'pause_resume',
+                      backgroundColor: Colors.white24,
+                      foregroundColor: Colors.white,
+                      onPressed: () {
+                        if (isRunning) {
+                          timerService.pauseTimer();
+                        } else {
+                          timerService.startTimer();
+                        }
+                      },
+                      child: Icon(isRunning ? Icons.pause : Icons.play_arrow),
+                    ),
+                    const SizedBox(width: 20),
+                    // Stop/Exit Button
+                    FloatingActionButton(
+                      heroTag: 'stop_exit',
+                      backgroundColor: Colors.white24,
+                      foregroundColor: Colors.white,
+                      onPressed: () {
+                        timerService.stopTimer();
+                        Navigator.pop(context);
+                      },
+                      child: const Icon(Icons.stop),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
