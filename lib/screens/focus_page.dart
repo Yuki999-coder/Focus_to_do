@@ -58,6 +58,72 @@ class FocusPage extends StatelessWidget {
                         ],
                       ),
                     ),
+                    
+                    // Task Selector
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: PopupMenuButton<String>(
+                        onSelected: (taskId) {
+                           if (taskId == 'none') {
+                             timerService.selectTask(null);
+                           } else {
+                             final task = timerService.tasks.firstWhere((t) => t.id == taskId);
+                             timerService.selectTask(task);
+                           }
+                        },
+                        itemBuilder: (context) {
+                          return [
+                            const PopupMenuItem(
+                              value: 'none',
+                              child: Text('No Task'),
+                            ),
+                            ...timerService.tasks.map((task) => PopupMenuItem(
+                                  value: task.id,
+                                  child: Text(
+                                    task.title, 
+                                    style: TextStyle(
+                                      fontWeight: task.id == timerService.currentTask?.id 
+                                          ? FontWeight.bold 
+                                          : FontWeight.normal
+                                    )
+                                  ),
+                                )),
+                          ];
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white24,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.white30),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.check_circle_outline, 
+                                color: timerService.currentTask != null ? Colors.greenAccent : Colors.white70, 
+                                size: 18
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  timerService.currentTask?.title ?? 'Select a Task to Focus',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(Icons.arrow_drop_down, color: Colors.white70),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
                     const Spacer(flex: 2),
                     
                     // Center Timer (Clickable)

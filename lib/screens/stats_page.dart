@@ -1,10 +1,24 @@
 import 'package:flutter/material.dart';
+import '../services/timer_service.dart';
 
 class StatsPage extends StatelessWidget {
   const StatsPage({super.key});
 
+  String _formatDuration(int totalSeconds) {
+    if (totalSeconds == 0) return '0m';
+    final hours = totalSeconds ~/ 3600;
+    final minutes = (totalSeconds % 3600) ~/ 60;
+    if (hours > 0) {
+      return '${hours}h ${minutes}m';
+    } else {
+      return '${minutes}m';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final timerService = TimerService();
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
@@ -23,7 +37,7 @@ class StatsPage extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   const Text(
-                    'Dang Nhap',
+                    'My Stats',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -33,10 +47,6 @@ class StatsPage extends StatelessWidget {
                   const Spacer(),
                   IconButton(
                     icon: const Icon(Icons.settings, color: Colors.white70),
-                    onPressed: () {},
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.calendar_month, color: Colors.white70),
                     onPressed: () {},
                   ),
                 ],
@@ -54,7 +64,7 @@ class StatsPage extends StatelessWidget {
                 child: const TextField(
                   style: TextStyle(color: Colors.white),
                   decoration: InputDecoration(
-                    hintText: 'Search',
+                    hintText: 'Search tasks...',
                     hintStyle: TextStyle(color: Colors.white38),
                     icon: Icon(Icons.search, color: Colors.white38),
                     border: InputBorder.none,
@@ -64,53 +74,33 @@ class StatsPage extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // Menu List
+              // Task List
               Expanded(
-                child: ListView(
-                  children: [
-                    _buildMenuItem(
-                      icon: Icons.wb_sunny,
-                      iconColor: Colors.yellow,
-                      title: 'Today',
-                      time: '1h 25m',
-                      count: 4,
-                    ),
-                     _buildMenuItem(
-                      icon: Icons.calendar_today,
-                      iconColor: Colors.purpleAccent,
-                      title: 'Tomorrow',
-                      time: '45m',
-                      count: 2,
-                    ),
-                    _buildMenuItem(
-                      icon: Icons.date_range,
-                      iconColor: Colors.blueAccent,
-                      title: 'This Week',
-                      time: '5h 10m',
-                      count: 8,
-                    ),
-                    _buildMenuItem(
-                      icon: Icons.event_note,
-                      iconColor: Colors.orangeAccent,
-                      title: 'Planned',
-                      time: '',
-                      count: 0,
-                    ),
-                     _buildMenuItem(
-                      icon: Icons.emoji_events,
-                      iconColor: Colors.greenAccent,
-                      title: 'Events',
-                      time: '2h',
-                      count: 1,
-                    ),
-                    _buildMenuItem(
-                      icon: Icons.check_circle_outline,
-                      iconColor: Colors.redAccent,
-                      title: 'Tasks',
-                      time: '30m',
-                      count: 5,
-                    ),
-                  ],
+                child: ListenableBuilder(
+                  listenable: timerService,
+                  builder: (context, child) {
+                    final tasks = timerService.tasks;
+                    
+                    if (tasks.isEmpty) {
+                      return const Center(
+                        child: Text("No tasks yet", style: TextStyle(color: Colors.white54)),
+                      );
+                    }
+
+                    return ListView.builder(
+                      itemCount: tasks.length,
+                      itemBuilder: (context, index) {
+                        final task = tasks[index];
+                        return _buildMenuItem(
+                          icon: task.isCompleted ? Icons.check_circle : Icons.circle_outlined,
+                          iconColor: task.isCompleted ? Colors.greenAccent : Colors.orangeAccent,
+                          title: task.title,
+                          time: _formatDuration(task.secondsSpent),
+                          isFocused: timerService.currentTask?.id == task.id,
+                        );
+                      },
+                    );
+                  },
                 ),
               ),
             ],
@@ -125,26 +115,20 @@ class StatsPage extends StatelessWidget {
     required Color iconColor,
     required String title,
     required String time,
-    required int count,
+    required bool isFocused,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
+        color: isFocused ? Colors.white10 : const Color(0xFF1E1E1E),
         borderRadius: BorderRadius.circular(12),
+        border: isFocused ? Border.all(color: Colors.white24) : null,
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.transparent, // Or a slight background if preferred
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: iconColor, size: 24),
-          ),
-          const SizedBox(width: 12),
+          Icon(icon, color: iconColor, size: 24),
+          const SizedBox(width: 16),
           Expanded(
             child: Text(
               title,
@@ -155,35 +139,17 @@ class StatsPage extends StatelessWidget {
               ),
             ),
           ),
-          if (time.isNotEmpty)
-            Container(
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                time,
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-               color: Colors.grey[800],
-               borderRadius: BorderRadius.circular(12),
+              color: Colors.black54,
+              borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
-              count.toString(),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
+              time,
+              style: const TextStyle(color: Colors.grey, fontSize: 14),
             ),
           ),
-          const SizedBox(width: 8),
         ],
       ),
     );

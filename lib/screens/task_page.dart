@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/task.dart';
 import '../widgets/task_item.dart';
+import '../services/timer_service.dart';
+import 'focus_page.dart';
 
 class TaskPage extends StatefulWidget {
   const TaskPage({super.key});
@@ -13,16 +14,8 @@ class _TaskPageState extends State<TaskPage> {
   String _selectedFilter = 'Today';
   final List<String> _filters = ['Today', 'Tomorrow', 'This Week'];
 
-  final List<Task> _tasks = [
-    Task(id: '1', title: 'Hoàn thành thiết kế UI', dueDate: DateTime.now()),
-    Task(id: '2', title: 'Viết báo cáo tuần', dueDate: DateTime.now()),
-    Task(id: '3', title: 'Tập thể dục 30 phút', isCompleted: true, dueDate: DateTime.now()),
-  ];
-
-  void _toggleTask(int index) {
-    setState(() {
-      _tasks[index].isCompleted = !_tasks[index].isCompleted;
-    });
+  void _toggleTask(String id) {
+    TimerService().toggleTask(id);
   }
 
   void _addNewTask() {
@@ -52,13 +45,7 @@ class _TaskPageState extends State<TaskPage> {
             TextButton(
               onPressed: () {
                 if (newTaskTitle.isNotEmpty) {
-                  setState(() {
-                    _tasks.insert(0, Task(
-                      id: DateTime.now().toString(),
-                      title: newTaskTitle,
-                      dueDate: DateTime.now(),
-                    ));
-                  });
+                  TimerService().addTask(newTaskTitle);
                 }
                 Navigator.pop(context);
               },
@@ -72,6 +59,8 @@ class _TaskPageState extends State<TaskPage> {
 
   @override
   Widget build(BuildContext context) {
+    final timerService = TimerService();
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -102,36 +91,59 @@ class _TaskPageState extends State<TaskPage> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView.builder(
-          itemCount: _tasks.length,
-          itemBuilder: (context, index) {
-            return Row(
-              children: [
-                Expanded(
-                  child: TaskItem(
-                    task: _tasks[index],
-                    onToggle: () => _toggleTask(index),
-                    onTap: () {
-                      // Logic to set as current focus task can be implemented here
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Focused on: ${_tasks[index].title}'),
-                          duration: const Duration(seconds: 1),
-                          backgroundColor: Colors.grey[800],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                // Optional side action button if needed, 
-                // but requirement said floating or right side.
-                // We'll use a floating action button for adding tasks generally.
-              ],
-            );
-          },
-        ),
+      body: ListenableBuilder(
+        listenable: timerService,
+        builder: (context, child) {
+          final tasks = timerService.tasks;
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ListView.builder(
+              itemCount: tasks.length,
+              itemBuilder: (context, index) {
+                final task = tasks[index];
+                return Row(
+                  children: [
+                    Expanded(
+                      child: TaskItem(
+                        task: task,
+                        onToggle: () => _toggleTask(task.id),
+                        onTap: () {
+                          // Just select, don't navigate
+                          timerService.selectTask(task);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Selected: ${task.title}'),
+                              duration: const Duration(milliseconds: 500),
+                              backgroundColor: Colors.grey[800],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    // Play Button to start focus on this task
+                    IconButton(
+                      icon: Icon(
+                        Icons.play_circle_fill, 
+                        color: timerService.currentTask?.id == task.id 
+                            ? Colors.redAccent 
+                            : Colors.white70,
+                        size: 32,
+                      ),
+                      onPressed: () {
+                        timerService.selectTask(task);
+                        // Navigate to Focus Page (Pushing on top to ensure user sees it)
+                        // Note: Ideally we switch tabs, but pushing is safer without context of MainScreen
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const FocusPage()),
+                        );
+                      },
+                    ),
+                  ],
+                );
+              },
+            ),
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addNewTask,
