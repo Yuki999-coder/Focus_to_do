@@ -48,6 +48,27 @@ class _FullScreenTimerPageState extends State<FullScreenTimerPage> {
           backgroundColor: Colors.black,
           body: Stack(
             children: [
+              // Top Controls (Exit Full Screen)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.fullscreen_exit, color: Colors.white70, size: 32),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
               // Main Timer Display
               Center(
                 child: OrientationBuilder(
@@ -69,6 +90,17 @@ class _FullScreenTimerPageState extends State<FullScreenTimerPage> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    // Reset Button (formerly Stop)
+                    FloatingActionButton(
+                      heroTag: 'reset_timer',
+                      backgroundColor: Colors.white24,
+                      foregroundColor: Colors.white,
+                      onPressed: () {
+                        timerService.stopTimer();
+                      },
+                      child: const Icon(Icons.replay),
+                    ),
+                    const SizedBox(width: 20),
                     // Pause/Resume Button
                     FloatingActionButton(
                       heroTag: 'pause_resume',
@@ -82,18 +114,6 @@ class _FullScreenTimerPageState extends State<FullScreenTimerPage> {
                         }
                       },
                       child: Icon(isRunning ? Icons.pause : Icons.play_arrow),
-                    ),
-                    const SizedBox(width: 20),
-                    // Stop/Exit Button
-                    FloatingActionButton(
-                      heroTag: 'stop_exit',
-                      backgroundColor: Colors.white24,
-                      foregroundColor: Colors.white,
-                      onPressed: () {
-                        timerService.stopTimer();
-                        Navigator.pop(context);
-                      },
-                      child: const Icon(Icons.stop),
                     ),
                   ],
                 ),

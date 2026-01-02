@@ -38,6 +38,26 @@ class FocusPage extends StatelessWidget {
               SafeArea(
                 child: Column(
                   children: [
+                    // Top Bar with Full Screen Button
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.fullscreen, color: Colors.white, size: 32),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const FullScreenTimerPage(),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
                     const Spacer(flex: 2),
                     
                     // Center Timer (Clickable)
@@ -74,18 +94,11 @@ class FocusPage extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 40),
                       child: ElevatedButton(
                         onPressed: () {
-                          // Ensure timer is started or just navigate
-                          // If we want to use the same timer instance in full screen:
-                          if (!timerService.isRunning) {
-                             timerService.startTimer();
+                          if (timerService.isRunning) {
+                            timerService.pauseTimer();
+                          } else {
+                            timerService.startTimer();
                           }
-                          
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const FullScreenTimerPage(),
-                            ),
-                          );
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: isBreak ? Colors.tealAccent : Colors.white,
@@ -98,10 +111,12 @@ class FocusPage extends StatelessWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.play_arrow),
+                            Icon(timerService.isRunning ? Icons.pause : Icons.play_arrow),
                             const SizedBox(width: 8),
                             Text(
-                              isBreak ? 'Start Break' : 'Start Focus',
+                              timerService.isRunning 
+                                  ? 'Pause' 
+                                  : (isBreak ? 'Start Break' : 'Start Focus'),
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
