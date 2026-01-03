@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   fl_chart: ^1.1.1
   intl: ^0.20.2
+  audioplayers: ^6.5.1
 
 dev_dependencies:
   flutter_test:
@@ -64,6 +65,7 @@ flutter:
   #   - images/a_dot_ham.jpeg
   assets:
     - assets/bg_universe.jpg
+    - assets/clock-tick.mp3
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

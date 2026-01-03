@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../models/task.dart';
 
 enum TimerMode { focus, breakMode }
@@ -8,6 +9,8 @@ class TimerService extends ChangeNotifier {
   static final TimerService _instance = TimerService._internal();
   factory TimerService() => _instance;
   TimerService._internal();
+
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   // Settings
   int _focusDuration = 25;
@@ -172,7 +175,7 @@ class TimerService extends ChangeNotifier {
     }
   }
 
-  void _handleTimerComplete() {
+  void _handleTimerComplete() async {
     _logSession(); // Log the full session
     _timer?.cancel();
     _timer = null;
@@ -180,6 +183,11 @@ class TimerService extends ChangeNotifier {
 
     // Task 2: Play a notification sound
     debugPrint("Timer finished. Playing notification sound...");
+    try {
+      await _audioPlayer.play(AssetSource('clock-tick.mp3'));
+    } catch (e) {
+      debugPrint("Error playing sound: $e");
+    }
 
     // Task 2: Automatically switch UI to 'Break Mode'
     if (_currentMode == TimerMode.focus) {
