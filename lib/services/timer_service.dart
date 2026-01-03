@@ -21,23 +21,38 @@ class TimerService extends ChangeNotifier {
 
   // Task Management
   Task? _currentTask;
+  DateTime? _currentSessionStartTime;
+
   final List<Task> _tasks = [
-    Task(id: '1', title: 'Hoàn thành thiết kế UI', dueDate: DateTime.now()),
+    Task(
+      id: '1', 
+      title: 'Hoàn thành thiết kế UI', 
+      dueDate: DateTime.now(),
+      secondsSpent: 1500, // 25 min
+      sessions: [
+        FocusSession(startTime: DateTime.now().subtract(const Duration(hours: 2)), durationSeconds: 1500),
+      ],
+    ),
     Task(
       id: '2', 
       title: 'Viết báo cáo tuần', 
-      dueDate: DateTime.now().add(const Duration(days: 1)), // Tomorrow
+      dueDate: DateTime.now().add(const Duration(days: 1)),
+      secondsSpent: 0,
     ),
     Task(
       id: '3', 
       title: 'Tập thể dục 30 phút', 
       isCompleted: true, 
       dueDate: DateTime.now(),
+      secondsSpent: 1800,
+      sessions: [
+        FocusSession(startTime: DateTime.now().subtract(const Duration(days: 1, hours: 10)), durationSeconds: 1800), // Yesterday
+      ],
     ),
     Task(
       id: '4',
       title: 'Họp team',
-      dueDate: DateTime.now().add(const Duration(days: 3)), // Later this week
+      dueDate: DateTime.now().add(const Duration(days: 3)),
     ),
   ];
 
@@ -99,6 +114,7 @@ class TimerService extends ChangeNotifier {
     if (_isRunning) return;
     
     _isRunning = true;
+    _currentSessionStartTime = DateTime.now();
     notifyListeners();
     
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -118,6 +134,7 @@ class TimerService extends ChangeNotifier {
   }
 
   void pauseTimer() {
+    _logSession();
     _timer?.cancel();
     _timer = null;
     _isRunning = false;
@@ -125,11 +142,26 @@ class TimerService extends ChangeNotifier {
   }
 
   void stopTimer() {
+    _logSession();
     _timer?.cancel();
     _timer = null;
     _isRunning = false;
     _resetToCurrentModeStart();
     notifyListeners();
+  }
+
+  void _logSession() {
+    if (_currentMode == TimerMode.focus && _currentTask != null && _currentSessionStartTime != null) {
+      final now = DateTime.now();
+      final duration = now.difference(_currentSessionStartTime!).inSeconds;
+      if (duration > 0) {
+         _currentTask!.sessions.add(FocusSession(
+           startTime: _currentSessionStartTime!, 
+           durationSeconds: duration
+         ));
+      }
+      _currentSessionStartTime = null;
+    }
   }
 
   void _resetToCurrentModeStart() {
@@ -141,6 +173,7 @@ class TimerService extends ChangeNotifier {
   }
 
   void _handleTimerComplete() {
+    _logSession(); // Log the full session
     _timer?.cancel();
     _timer = null;
     _isRunning = false;
