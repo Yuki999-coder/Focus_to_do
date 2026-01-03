@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import '../models/task.dart';
 
 enum TimerMode { focus, breakMode }
@@ -23,8 +23,22 @@ class TimerService extends ChangeNotifier {
   Task? _currentTask;
   final List<Task> _tasks = [
     Task(id: '1', title: 'Hoàn thành thiết kế UI', dueDate: DateTime.now()),
-    Task(id: '2', title: 'Viết báo cáo tuần', dueDate: DateTime.now()),
-    Task(id: '3', title: 'Tập thể dục 30 phút', isCompleted: true, dueDate: DateTime.now()),
+    Task(
+      id: '2', 
+      title: 'Viết báo cáo tuần', 
+      dueDate: DateTime.now().add(const Duration(days: 1)), // Tomorrow
+    ),
+    Task(
+      id: '3', 
+      title: 'Tập thể dục 30 phút', 
+      isCompleted: true, 
+      dueDate: DateTime.now(),
+    ),
+    Task(
+      id: '4',
+      title: 'Họp team',
+      dueDate: DateTime.now().add(const Duration(days: 3)), // Later this week
+    ),
   ];
 
   // Getters
@@ -43,11 +57,12 @@ class TimerService extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addTask(String title) {
+  void addTask(String title, {DateTime? dueDate, TimeOfDay? reminderTime}) {
     _tasks.insert(0, Task(
       id: DateTime.now().toString(),
       title: title,
-      dueDate: DateTime.now(),
+      dueDate: dueDate ?? DateTime.now(),
+      reminderTime: reminderTime,
     ));
     notifyListeners();
   }

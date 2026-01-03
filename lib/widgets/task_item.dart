@@ -51,7 +51,40 @@ class TaskItem extends StatelessWidget {
             decoration: task.isCompleted ? TextDecoration.lineThrough : null,
           ),
         ),
+        subtitle: _buildTaskInfo(context),
       ),
+    );
+  }
+
+  Widget? _buildTaskInfo(BuildContext context) {
+    final List<String> infoParts = [];
+
+    // Format Date
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final taskDate = DateTime(task.dueDate.year, task.dueDate.month, task.dueDate.day);
+    final difference = taskDate.difference(today).inDays;
+
+    String dateStr;
+    if (difference == 0) {
+      dateStr = 'Today';
+    } else if (difference == 1) {
+      dateStr = 'Tomorrow';
+    } else {
+      dateStr = '${task.dueDate.day}/${task.dueDate.month}';
+    }
+    infoParts.add(dateStr);
+
+    // Format Time
+    if (task.reminderTime != null) {
+      infoParts.add(task.reminderTime!.format(context));
+    }
+
+    if (infoParts.isEmpty) return null;
+
+    return Text(
+      infoParts.join(' • '),
+      style: const TextStyle(color: Colors.white54, fontSize: 12),
     );
   }
 }
