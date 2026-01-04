@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import '../services/timer_service.dart';
 import '../models/task.dart';
 
@@ -14,7 +15,7 @@ enum StatPeriod { day, week, month }
 
 class _StatsPageState extends State<StatsPage> {
   StatPeriod _selectedPeriod = StatPeriod.day;
-  final DateTime _currentDate = DateTime.now();
+  DateTime _currentDate = DateTime.now();
 
   String _formatDuration(int totalSeconds) {
     if (totalSeconds == 0) return '0m';
@@ -24,6 +25,50 @@ class _StatsPageState extends State<StatsPage> {
       return '${hours}h ${minutes}m';
     } else {
       return '${minutes}m';
+    }
+  }
+
+  Future<void> _pickDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _currentDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.dark().copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Colors.redAccent,
+              onPrimary: Colors.white,
+              surface: Color(0xFF1E1E1E),
+              onSurface: Colors.white,
+            ),
+            dialogTheme: const DialogThemeData(
+              backgroundColor: Color(0xFF1E1E1E),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _currentDate) {
+      setState(() {
+        _currentDate = picked;
+        _selectedPeriod = StatPeriod.day;
+      });
+    }
+  }
+
+  String _getDateLabel() {
+    if (_selectedPeriod == StatPeriod.day) {
+      if (DateUtils.isSameDay(_currentDate, DateTime.now())) return "Today";
+      return DateFormat('MMM d, yyyy').format(_currentDate);
+    } else if (_selectedPeriod == StatPeriod.week) {
+      final start = _getStartOfWeek(_currentDate);
+      final end = start.add(const Duration(days: 6));
+      return '${DateFormat('MMM d').format(start)} - ${DateFormat('MMM d').format(end)}';
+    } else {
+      return DateFormat('MMMM yyyy').format(_currentDate);
     }
   }
 
@@ -281,12 +326,32 @@ class _StatsPageState extends State<StatsPage> {
               children: [
                 const SizedBox(height: 10),
                 // Header
-                const Text(
-                   'Statistics',
-                   style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                       const SizedBox(width: 48), // Balance for the icon button
+                       const Text(
+                         'Statistics',
+                         style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                       ),
+                       IconButton(
+                         icon: const Icon(Icons.calendar_month, color: Colors.white),
+                         onPressed: _pickDate,
+                         tooltip: 'Select Date',
+                       ),
+                    ],
+                  ),
                 ),
                 
                 _buildPeriodSelector(),
+                
+                Text(
+                  _getDateLabel(),
+                  style: const TextStyle(color: Colors.white70, fontSize: 16),
+                ),
+                const SizedBox(height: 10),
                 
                 // Total Time Display
                 Text(
