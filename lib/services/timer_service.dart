@@ -15,6 +15,7 @@ class TimerService extends ChangeNotifier {
   // Settings
   int _focusDuration = 25;
   int _shortBreakDuration = 5;
+  String _selectedSound = 'clock-tick.mp3';
 
   // State
   TimerMode _currentMode = TimerMode.focus;
@@ -62,6 +63,7 @@ class TimerService extends ChangeNotifier {
   // Getters
   int get focusDuration => _focusDuration;
   int get shortBreakDuration => _shortBreakDuration;
+  String get selectedSound => _selectedSound;
   TimerMode get currentMode => _currentMode;
   int get remainingSeconds => _remainingSeconds;
   bool get isRunning => _isRunning;
@@ -72,6 +74,11 @@ class TimerService extends ChangeNotifier {
   // Task Methods
   void selectTask(Task? task) {
     _currentTask = task;
+    notifyListeners();
+  }
+
+  void setSound(String soundFile) {
+    _selectedSound = soundFile;
     notifyListeners();
   }
 
@@ -184,7 +191,7 @@ class TimerService extends ChangeNotifier {
     // Task 2: Play a notification sound
     debugPrint("Timer finished. Playing notification sound...");
     try {
-      await _audioPlayer.play(AssetSource('clock-tick.mp3'));
+      await _audioPlayer.play(AssetSource(_selectedSound));
     } catch (e) {
       debugPrint("Error playing sound: $e");
     }

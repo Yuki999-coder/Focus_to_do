@@ -201,15 +201,63 @@ class FocusPage extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _buildBottomHint(Icons.lock_outline, 'Strict Mode'),
+                          _buildBottomHint(Icons.lock_outline, 'Strict Mode', null),
                           const SizedBox(width: 40),
-                          _buildBottomHint(Icons.volume_up_outlined, 'Sound'),
+                          _buildBottomHint(Icons.volume_up_outlined, 'Sound', () => _showSoundPicker(context, timerService)),
                         ],
                       ),
                     ),
                   ],
                 ),
               ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showSoundPicker(BuildContext context, TimerService timerService) {
+    // Hardcoded list of sounds from assets
+    final List<String> sounds = ['clock-tick.mp3', 'vine-boom.mp3'];
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Select Completion Sound',
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              ...sounds.map((sound) {
+                final isSelected = timerService.selectedSound == sound;
+                return ListTile(
+                  leading: Icon(
+                    isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                    color: isSelected ? Colors.tealAccent : Colors.grey,
+                  ),
+                  title: Text(
+                    sound,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.white70,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                  onTap: () {
+                    timerService.setSound(sound);
+                    Navigator.pop(context);
+                  },
+                );
+              }),
             ],
           ),
         );
@@ -302,16 +350,19 @@ class FocusPage extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomHint(IconData icon, String label) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.white70, size: 20),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
-        ),
-      ],
+  Widget _buildBottomHint(IconData icon, String label, VoidCallback? onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Icon(icon, color: Colors.white70, size: 20),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+        ],
+      ),
     );
   }
 }
