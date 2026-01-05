@@ -11,7 +11,7 @@ class StatsPage extends StatefulWidget {
   State<StatsPage> createState() => _StatsPageState();
 }
 
-enum StatPeriod { day, week, month }
+enum StatPeriod { day, week, month, year }
 
 class _StatsPageState extends State<StatsPage> {
   StatPeriod _selectedPeriod = StatPeriod.day;
@@ -29,34 +29,173 @@ class _StatsPageState extends State<StatsPage> {
   }
 
   Future<void> _pickDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _currentDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: ThemeData.dark().copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: Colors.redAccent,
-              onPrimary: Colors.white,
-              surface: Color(0xFF1E1E1E),
-              onSurface: Colors.white,
+    if (_selectedPeriod == StatPeriod.day || _selectedPeriod == StatPeriod.week) {
+      final DateTime? picked = await showDatePicker(
+        context: context,
+        initialDate: _currentDate,
+        firstDate: DateTime(2020),
+        lastDate: DateTime.now(),
+        builder: (context, child) {
+          return Theme(
+            data: ThemeData.dark().copyWith(
+              colorScheme: const ColorScheme.dark(
+                primary: Colors.redAccent,
+                onPrimary: Colors.white,
+                surface: Color(0xFF1E1E1E),
+                onSurface: Colors.white,
+              ),
+              dialogTheme: const DialogThemeData(
+                backgroundColor: Color(0xFF1E1E1E),
+              ),
             ),
-            dialogTheme: const DialogThemeData(
-              backgroundColor: Color(0xFF1E1E1E),
+            child: child!,
+          );
+        },
+      );
+      if (picked != null && picked != _currentDate) {
+        setState(() {
+          _currentDate = picked;
+          // Do not reset _selectedPeriod
+        });
+      }
+    } else if (_selectedPeriod == StatPeriod.month) {
+      await _pickMonth();
+    } else if (_selectedPeriod == StatPeriod.year) {
+      await _pickYear();
+    }
+  }
+
+  Future<void> _pickYear() async {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Theme(
+           data: ThemeData.dark().copyWith(
+              colorScheme: const ColorScheme.dark(
+                primary: Colors.redAccent,
+                onPrimary: Colors.white,
+                surface: Color(0xFF1E1E1E),
+                onSurface: Colors.white,
+              ),
+              dialogTheme: const DialogThemeData(
+                backgroundColor: Color(0xFF1E1E1E),
+              ),
+           ),
+           child: AlertDialog(
+            title: const Text("Select Year"),
+            content: SizedBox(
+              width: 300,
+              height: 300,
+              child: YearPicker(
+                firstDate: DateTime(2020),
+                lastDate: DateTime.now(),
+                selectedDate: _currentDate,
+                onChanged: (DateTime dateTime) {
+                  setState(() {
+                    _currentDate = dateTime;
+                  });
+                  Navigator.pop(context);
+                },
+              ),
             ),
           ),
-          child: child!,
         );
       },
     );
-    if (picked != null && picked != _currentDate) {
-      setState(() {
-        _currentDate = picked;
-        _selectedPeriod = StatPeriod.day;
-      });
-    }
+  }
+
+  Future<void> _pickMonth() async {
+    DateTime tempDate = _currentDate;
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Theme(
+              data: ThemeData.dark().copyWith(
+                colorScheme: const ColorScheme.dark(
+                  primary: Colors.redAccent,
+                  onPrimary: Colors.white,
+                  surface: Color(0xFF1E1E1E),
+                  onSurface: Colors.white,
+                ),
+                dialogTheme: const DialogThemeData(
+                  backgroundColor: Color(0xFF1E1E1E),
+                ),
+              ),
+              child: AlertDialog(
+                title: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.chevron_left, color: Colors.white),
+                      onPressed: () {
+                        setDialogState(() {
+                          tempDate = DateTime(tempDate.year - 1, tempDate.month);
+                        });
+                      },
+                    ),
+                    Text('${tempDate.year}', style: const TextStyle(color: Colors.white)),
+                    IconButton(
+                      icon: const Icon(Icons.chevron_right, color: Colors.white),
+                      onPressed: () {
+                        if (tempDate.year < DateTime.now().year) {
+                           setDialogState(() {
+                             tempDate = DateTime(tempDate.year + 1, tempDate.month);
+                           });
+                        }
+                      },
+                    ),
+                  ],
+                ),
+                content: SizedBox(
+                  width: 300,
+                  height: 300,
+                  child: GridView.builder(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      childAspectRatio: 1.5,
+                    ),
+                    itemCount: 12,
+                    itemBuilder: (context, index) {
+                      final monthIndex = index + 1;
+                      // Disable future months if current year
+                      final isFuture = tempDate.year == DateTime.now().year && monthIndex > DateTime.now().month;
+                      final isSelected = monthIndex == tempDate.month;
+                      
+                      return GestureDetector(
+                        onTap: isFuture ? null : () {
+                          setState(() {
+                            _currentDate = DateTime(tempDate.year, monthIndex);
+                          });
+                          Navigator.pop(context);
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: isSelected ? Colors.redAccent : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: isSelected ? Colors.redAccent : Colors.white24),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            DateFormat('MMM').format(DateTime(2024, monthIndex)),
+                            style: TextStyle(
+                              color: isFuture ? Colors.white24 : (isSelected ? Colors.white : Colors.white70),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            );
+          }
+        );
+      },
+    );
   }
 
   String _getDateLabel() {
@@ -67,8 +206,10 @@ class _StatsPageState extends State<StatsPage> {
       final start = _getStartOfWeek(_currentDate);
       final end = start.add(const Duration(days: 6));
       return '${DateFormat('MMM d').format(start)} - ${DateFormat('MMM d').format(end)}';
-    } else {
+    } else if (_selectedPeriod == StatPeriod.month) {
       return DateFormat('MMMM yyyy').format(_currentDate);
+    } else {
+      return DateFormat('yyyy').format(_currentDate);
     }
   }
 
@@ -135,6 +276,23 @@ class _StatsPageState extends State<StatsPage> {
           }
         }
       }
+    } else if (_selectedPeriod == StatPeriod.year) {
+      // Buckets for months 1-12
+      for (var i = 1; i <= 12; i++) {
+        data[i] = 0;
+      }
+      
+      final startYear = DateTime(_currentDate.year, 1, 1);
+      final endYear = DateTime(_currentDate.year + 1, 1, 1);
+
+      for (var task in tasks) {
+        for (var session in task.sessions) {
+          if (session.startTime.isAfter(startYear) && session.startTime.isBefore(endYear)) {
+             final month = session.startTime.month;
+             data[month] = (data[month] ?? 0) + session.durationSeconds;
+          }
+        }
+      }
     }
 
     return data;
@@ -142,8 +300,6 @@ class _StatsPageState extends State<StatsPage> {
 
   int _getTotalTimeForPeriod(List<Task> tasks) {
     int total = 0;
-    // Logic similar to above, just summing
-    // To avoid duplication, let's just sum the chart data values
     final chartData = _getChartData(tasks);
     for (var val in chartData.values) {
       total += val;
@@ -163,9 +319,12 @@ class _StatsPageState extends State<StatsPage> {
         final sow = _getStartOfWeek(_currentDate);
         start = DateTime(sow.year, sow.month, sow.day);
         end = start.add(const Duration(days: 7));
-     } else {
+     } else if (_selectedPeriod == StatPeriod.month) {
         start = DateTime(_currentDate.year, _currentDate.month, 1);
         end = DateTime(_currentDate.year, _currentDate.month + 1, 1);
+     } else {
+        start = DateTime(_currentDate.year, 1, 1);
+        end = DateTime(_currentDate.year + 1, 1, 1);
      }
 
      for (var session in task.sessions) {
@@ -184,13 +343,17 @@ class _StatsPageState extends State<StatsPage> {
         color: const Color(0xFF1E1E1E),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildPeriodBtn(StatPeriod.day, "Day"),
-          _buildPeriodBtn(StatPeriod.week, "Week"),
-          _buildPeriodBtn(StatPeriod.month, "Month"),
-        ],
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildPeriodBtn(StatPeriod.day, "Day"),
+            _buildPeriodBtn(StatPeriod.week, "Week"),
+            _buildPeriodBtn(StatPeriod.month, "Month"),
+            _buildPeriodBtn(StatPeriod.year, "Year"),
+          ],
+        ),
       ),
     );
   }
@@ -200,7 +363,7 @@ class _StatsPageState extends State<StatsPage> {
     return GestureDetector(
       onTap: () => setState(() => _selectedPeriod = period),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
         decoration: BoxDecoration(
           color: isSelected ? Colors.redAccent : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
@@ -227,8 +390,6 @@ class _StatsPageState extends State<StatsPage> {
       if (data[key]! > maxVal) maxVal = data[key]!;
     }
     
-    // Normalize logic or let fl_chart handle it? 
-    // Let's just create BarChartGroupData
     for (var key in sortedKeys) {
        barGroups.add(
          BarChartGroupData(
@@ -237,7 +398,7 @@ class _StatsPageState extends State<StatsPage> {
              BarChartRodData(
                toY: data[key]!.toDouble(),
                color: Colors.redAccent,
-               width: _selectedPeriod == StatPeriod.month ? 4 : 12, // Thinner bars for month
+               width: (_selectedPeriod == StatPeriod.month || _selectedPeriod == StatPeriod.year) ? 8 : 12,
                borderRadius: BorderRadius.circular(4),
                backDrawRodData: BackgroundBarChartRodData(
                  show: true,
@@ -284,8 +445,11 @@ class _StatsPageState extends State<StatsPage> {
                   } else if (_selectedPeriod == StatPeriod.week) {
                      const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
                      if (intVal >= 1 && intVal <= 7) text = days[intVal-1];
-                  } else {
+                  } else if (_selectedPeriod == StatPeriod.month) {
                      if (intVal % 5 == 0 || intVal == 1) text = '$intVal';
+                  } else if (_selectedPeriod == StatPeriod.year) {
+                     const months = ['J','F','M','A','M','J','J','A','S','O','N','D'];
+                     if (intVal >= 1 && intVal <= 12) text = months[intVal-1];
                   }
                   
                   return SideTitleWidget(
