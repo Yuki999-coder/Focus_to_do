@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/task.dart';
 
 enum TimerMode { focus, breakMode }
@@ -8,7 +10,10 @@ enum TimerMode { focus, breakMode }
 class TimerService extends ChangeNotifier {
   static final TimerService _instance = TimerService._internal();
   factory TimerService() => _instance;
-  TimerService._internal();
+  
+  TimerService._internal() {
+    _loadTasks();
+  }
 
   final AudioPlayer _audioPlayer = AudioPlayer();
 
@@ -27,38 +32,7 @@ class TimerService extends ChangeNotifier {
   Task? _currentTask;
   DateTime? _currentSessionStartTime;
 
-  final List<Task> _tasks = [
-    Task(
-      id: '1', 
-      title: 'Hoàn thành thiết kế UI', 
-      dueDate: DateTime.now(),
-      secondsSpent: 1500, // 25 min
-      sessions: [
-        FocusSession(startTime: DateTime.now().subtract(const Duration(hours: 2)), durationSeconds: 1500),
-      ],
-    ),
-    Task(
-      id: '2', 
-      title: 'Viết báo cáo tuần', 
-      dueDate: DateTime.now().add(const Duration(days: 1)),
-      secondsSpent: 0,
-    ),
-    Task(
-      id: '3', 
-      title: 'Tập thể dục 30 phút', 
-      isCompleted: true, 
-      dueDate: DateTime.now(),
-      secondsSpent: 1800,
-      sessions: [
-        FocusSession(startTime: DateTime.now().subtract(const Duration(days: 1, hours: 10)), durationSeconds: 1800), // Yesterday
-      ],
-    ),
-    Task(
-      id: '4',
-      title: 'Họp team',
-      dueDate: DateTime.now().add(const Duration(days: 3)),
-    ),
-  ];
+  List<Task> _tasks = [];
 
   // Getters
   int get focusDuration => _focusDuration;
@@ -70,6 +44,58 @@ class TimerService extends ChangeNotifier {
   
   List<Task> get tasks => _tasks;
   Task? get currentTask => _currentTask;
+
+  // Persistence Methods
+  Future<void> _loadTasks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? tasksJson = prefs.getString('tasks');
+    if (tasksJson != null) {
+      final List<dynamic> decoded = jsonDecode(tasksJson);
+      _tasks = decoded.map((item) => Task.fromJson(item)).toList();
+    } else {
+      // Load default data if no data exists
+      _tasks = [
+        Task(
+          id: '1', 
+          title: 'Hoàn thành thiết kế UI', 
+          dueDate: DateTime.now(),
+          secondsSpent: 1500, // 25 min
+          sessions: [
+            FocusSession(startTime: DateTime.now().subtract(const Duration(hours: 2)), durationSeconds: 1500),
+          ],
+        ),
+        Task(
+          id: '2', 
+          title: 'Viết báo cáo tuần', 
+          dueDate: DateTime.now().add(const Duration(days: 1)),
+          secondsSpent: 0,
+        ),
+        Task(
+          id: '3', 
+          title: 'Tập thể dục 30 phút', 
+          isCompleted: true, 
+          dueDate: DateTime.now(),
+          secondsSpent: 1800,
+          sessions: [
+            FocusSession(startTime: DateTime.now().subtract(const Duration(days: 1, hours: 10)), durationSeconds: 1800), // Yesterday
+          ],
+        ),
+        Task(
+          id: '4',
+          title: 'Họp team',
+          dueDate: DateTime.now().add(const Duration(days: 3)),
+        ),
+      ];
+      _saveTasks();
+    }
+    notifyListeners();
+  }
+
+  Future<void> _saveTasks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String encoded = jsonEncode(_tasks.map((t) => t.toJson()).toList());
+    await prefs.setString('tasks', encoded);
+  }
 
   // Task Methods
   void selectTask(Task? task) {
@@ -89,6 +115,7 @@ class TimerService extends ChangeNotifier {
       dueDate: dueDate ?? DateTime.now(),
       reminderTime: reminderTime,
     ));
+    _saveTasks();
     notifyListeners();
   }
 
@@ -96,6 +123,7 @@ class TimerService extends ChangeNotifier {
     final index = _tasks.indexWhere((t) => t.id == id);
     if (index != -1) {
       _tasks[index].isCompleted = !_tasks[index].isCompleted;
+      _saveTasks();
       notifyListeners();
     }
   }
@@ -169,6 +197,7 @@ class TimerService extends ChangeNotifier {
            startTime: _currentSessionStartTime!, 
            durationSeconds: duration
          ));
+         _saveTasks();
       }
       _currentSessionStartTime = null;
     }

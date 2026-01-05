@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'focus_page.dart';
 import 'task_page.dart';
 import 'stats_page.dart';
+import 'timeline_page.dart';
 import 'profile_page.dart';
 
 class MainScreen extends StatefulWidget {
@@ -18,6 +19,7 @@ class _MainScreenState extends State<MainScreen> {
     FocusPage(),
     TaskPage(),
     StatsPage(),
+    TimelinePage(),
     ProfilePage(),
   ];
 
@@ -50,6 +52,10 @@ class _MainScreenState extends State<MainScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.bar_chart), // Stats - Image 5
             label: 'Stats',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history), // Timeline
+            label: 'Timeline',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person), // Profile
