@@ -171,8 +171,10 @@ class FocusPage extends StatelessWidget {
                     // Action Button
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 40),
-                      child: timerService.isRunning
-                          ? Row(
+                      child: Column(
+                        children: [
+                          if (timerService.isRunning)
+                            Row(
                               children: [
                                 Expanded(
                                   child: ElevatedButton(
@@ -223,7 +225,8 @@ class FocusPage extends StatelessWidget {
                                 ),
                               ],
                             )
-                          : ElevatedButton(
+                          else
+                            ElevatedButton(
                               onPressed: () {
                                 timerService.startTimer();
                               },
@@ -241,7 +244,9 @@ class FocusPage extends StatelessWidget {
                                   const Icon(Icons.play_arrow),
                                   const SizedBox(width: 8),
                                   Text(
-                                    isBreak ? 'Start Break' : 'Start Focus',
+                                    timerService.isStopwatchMode 
+                                      ? 'Start Stopwatch' 
+                                      : (isBreak ? 'Start Break' : 'Start Focus'),
                                     style: const TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
@@ -250,6 +255,24 @@ class FocusPage extends StatelessWidget {
                                 ],
                               ),
                             ),
+                            
+                            // Skip Break Button
+                            if (isBreak && !timerService.isRunning)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 16),
+                                child: TextButton.icon(
+                                  onPressed: () {
+                                    timerService.skipBreak();
+                                  },
+                                  icon: const Icon(Icons.skip_next, color: Colors.white70),
+                                  label: const Text(
+                                    'Skip Break',
+                                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                                  ),
+                                ),
+                              ),
+                        ],
+                      ),
                     ),
                     
                     const Spacer(),
@@ -341,6 +364,18 @@ class FocusPage extends StatelessWidget {
               _showTimePickerFor(context, timerService, true);
             },
             child: const Text('Set Focus Duration'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              if (timerService.isStopwatchMode) {
+                 // Switch back to Timer (default 25 min or current setting)
+                 timerService.setDuration(timerService.focusDuration); 
+              } else {
+                 timerService.setStopwatchMode();
+              }
+            },
+            child: Text(timerService.isStopwatchMode ? 'Switch to Timer Mode' : 'Switch to Stopwatch Mode'),
           ),
           CupertinoActionSheetAction(
             onPressed: () {

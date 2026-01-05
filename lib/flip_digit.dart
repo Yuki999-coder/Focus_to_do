@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'models/clock_theme_model.dart';
 
 class FlipDigit extends StatelessWidget {
   /// The integer value to display (0-9).
@@ -8,10 +9,14 @@ class FlipDigit extends StatelessWidget {
   /// The size (width) of the digit card. Height will be calculated based on aspect ratio.
   final double size;
 
+  /// The style configuration for the digit.
+  final ClockStyle style;
+
   const FlipDigit({
     Key? key,
     required this.value,
     this.size = 60.0,
+    this.style = const ClockStyle(),
   }) : super(key: key);
 
   @override
@@ -43,13 +48,13 @@ class FlipDigit extends StatelessWidget {
       width: size,
       height: size * 1.5,
       decoration: BoxDecoration(
-        color: const Color(0xFF2C2C2C), // Dark grey
-        borderRadius: BorderRadius.circular(size * 0.1),
+        color: style.cardColor,
+        borderRadius: BorderRadius.circular(style.borderRadius),
         boxShadow: [
-          BoxShadow(
+          const BoxShadow(
             color: Colors.black26,
             blurRadius: 4,
-            offset: const Offset(0, 2),
+            offset: Offset(0, 2),
           ),
         ],
       ),
@@ -62,7 +67,7 @@ class FlipDigit extends StatelessWidget {
             style: TextStyle(
               fontSize: size,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: style.textColor,
               height: 1.0, // Tighter vertical alignment
             ),
           ),

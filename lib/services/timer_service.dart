@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/task.dart';
+import '../models/clock_theme_model.dart';
 
 enum TimerMode { focus, breakMode }
 
@@ -22,10 +23,15 @@ class TimerService extends ChangeNotifier {
   int _shortBreakDuration = 5;
   String _selectedSound = 'music/clock-tick.mp3';
   String _backgroundImage = 'assets/images/bg_universe.jpg';
+  
+  // Customization
+  ClockStyle _clockStyle = const ClockStyle();
 
   // State
   TimerMode _currentMode = TimerMode.focus;
   int _remainingSeconds = 25 * 60;
+  bool _isStopwatchMode = false;
+  int _stopwatchSeconds = 0; // Tracks elapsed time in stopwatch mode
   Timer? _timer;
   bool _isRunning = false;
 
@@ -40,9 +46,11 @@ class TimerService extends ChangeNotifier {
   int get shortBreakDuration => _shortBreakDuration;
   String get selectedSound => _selectedSound;
   String get backgroundImage => _backgroundImage;
+  ClockStyle get clockStyle => _clockStyle;
   TimerMode get currentMode => _currentMode;
-  int get remainingSeconds => _remainingSeconds;
+  int get remainingSeconds => _isStopwatchMode ? _stopwatchSeconds : _remainingSeconds;
   bool get isRunning => _isRunning;
+  bool get isStopwatchMode => _isStopwatchMode;
   
   List<Task> get tasks => _tasks;
   Task? get currentTask => _currentTask;
@@ -53,6 +61,15 @@ class TimerService extends ChangeNotifier {
     
     // Load Settings
     _backgroundImage = prefs.getString('backgroundImage') ?? 'assets/images/bg_universe.jpg';
+    
+    final String? styleJson = prefs.getString('clockStyle');
+    if (styleJson != null) {
+      try {
+        _clockStyle = ClockStyle.fromJson(jsonDecode(styleJson));
+      } catch (e) {
+        debugPrint("Error loading clock style: $e");
+      }
+    }
 
     final String? tasksJson = prefs.getString('tasks');
     if (tasksJson != null) {
@@ -100,6 +117,7 @@ class TimerService extends ChangeNotifier {
   Future<void> _saveTasks() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('backgroundImage', _backgroundImage);
+    await prefs.setString('clockStyle', jsonEncode(_clockStyle.toJson()));
     final String encoded = jsonEncode(_tasks.map((t) => t.toJson()).toList());
     await prefs.setString('tasks', encoded);
   }
@@ -118,6 +136,12 @@ class TimerService extends ChangeNotifier {
   void setBackgroundImage(String path) {
     _backgroundImage = path;
     _saveTasks(); // Save settings
+    notifyListeners();
+  }
+
+  void updateClockStyle(ClockStyle newStyle) {
+    _clockStyle = newStyle;
+    _saveTasks();
     notifyListeners();
   }
 
@@ -145,8 +169,18 @@ class TimerService extends ChangeNotifier {
   /// If currently in Focus mode and not running, updates the remaining time immediately.
   void setDuration(int minutes) {
     _focusDuration = minutes;
+    _isStopwatchMode = false; // Reset to Timer mode when duration is set
     if (_currentMode == TimerMode.focus && !_isRunning) {
       _remainingSeconds = _focusDuration * 60;
+      notifyListeners();
+    }
+  }
+
+  void setStopwatchMode() {
+    _isStopwatchMode = true;
+    _stopwatchSeconds = 0;
+    _currentMode = TimerMode.focus; // Stopwatch is usually for focus
+    if (!_isRunning) {
       notifyListeners();
     }
   }
@@ -161,34 +195,64 @@ class TimerService extends ChangeNotifier {
     }
   }
 
+  void skipBreak() {
+    if (_currentMode == TimerMode.breakMode) {
+      _timer?.cancel();
+      _timer = null;
+      _isRunning = false;
+      _currentMode = TimerMode.focus;
+      _isStopwatchMode = false; // Reset to standard timer or keep preference? Reset safe.
+      _remainingSeconds = _focusDuration * 60;
+      notifyListeners();
+    }
+  }
+
   void startTimer() {
     if (_isRunning) return;
     
     _isRunning = true;
-    _currentSessionStartTime = DateTime.now();
+    _currentSessionStartTime ??= DateTime.now(); // Only set if not already set (resume)
     notifyListeners();
     
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_remainingSeconds > 0) {
-        _remainingSeconds--;
-        
+      if (_isStopwatchMode) {
+        _stopwatchSeconds++;
         // Track time for current task if in Focus mode
         if (_currentMode == TimerMode.focus && _currentTask != null) {
           _currentTask!.secondsSpent++;
         }
-        
         notifyListeners();
       } else {
-        _handleTimerComplete();
+        if (_remainingSeconds > 0) {
+          _remainingSeconds--;
+          
+          // Track time for current task if in Focus mode
+          if (_currentMode == TimerMode.focus && _currentTask != null) {
+            _currentTask!.secondsSpent++;
+          }
+          
+          notifyListeners();
+        } else {
+          _handleTimerComplete();
+        }
       }
     });
   }
 
   void pauseTimer() {
-    _logSession();
+    _logSession(); 
+    // For Stopwatch, we might want to log the chunk, but keep the start time reference?
+    // Actually _logSession uses difference from _currentSessionStartTime.
+    // If we nullify it, we lose the start. But if we don't, duration increases during pause?
+    // Better: _logSession calculates elapsed. We should reset start time on resume.
+    // In startTimer: _currentSessionStartTime ??= DateTime.now(); handles resume if null.
+    // If we pause, we log what we did. So next start is a "new" session chunk.
+    // So current logic is fine for logging chunks.
+    
     _timer?.cancel();
     _timer = null;
     _isRunning = false;
+    _currentSessionStartTime = null; // Prepare for next chunk
     notifyListeners();
   }
 
@@ -251,8 +315,9 @@ class TimerService extends ChangeNotifier {
   }
 
   String get formattedTime {
-    final minutes = _remainingSeconds ~/ 60;
-    final seconds = _remainingSeconds % 60;
+    final secondsToDisplay = _isStopwatchMode ? _stopwatchSeconds : _remainingSeconds;
+    final minutes = secondsToDisplay ~/ 60;
+    final seconds = secondsToDisplay % 60;
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 }

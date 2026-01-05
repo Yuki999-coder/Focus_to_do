@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../flip_digit.dart';
 import '../services/timer_service.dart';
+import '../widgets/clock_customizer_sheet.dart';
+import '../models/clock_theme_model.dart';
 
 class FullScreenTimerPage extends StatefulWidget {
   const FullScreenTimerPage({super.key});
@@ -63,6 +65,17 @@ class _FullScreenTimerPageState extends State<FullScreenTimerPage> {
                           icon: const Icon(Icons.fullscreen_exit, color: Colors.white70, size: 32),
                           onPressed: () => Navigator.pop(context),
                         ),
+                        IconButton(
+                          icon: const Icon(Icons.palette_outlined, color: Colors.white70, size: 32),
+                          onPressed: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true, // Allow full height if needed
+                              backgroundColor: Colors.transparent,
+                              builder: (context) => const ClockCustomizerSheet(),
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -74,9 +87,9 @@ class _FullScreenTimerPageState extends State<FullScreenTimerPage> {
                 child: OrientationBuilder(
                   builder: (context, orientation) {
                     if (orientation == Orientation.portrait) {
-                      return _buildPortraitLayout(minTens, minOnes, secTens, secOnes);
+                      return _buildPortraitLayout(minTens, minOnes, secTens, secOnes, timerService.clockStyle);
                     } else {
-                      return _buildLandscapeLayout(minTens, minOnes, secTens, secOnes);
+                      return _buildLandscapeLayout(minTens, minOnes, secTens, secOnes, timerService.clockStyle);
                     }
                   },
                 ),
@@ -125,9 +138,8 @@ class _FullScreenTimerPageState extends State<FullScreenTimerPage> {
     );
   }
 
-  // PORTRAIT: 2x2 Grid
-  // Minutes on top row, Seconds on bottom row
-  Widget _buildPortraitLayout(int mT, int mO, int sT, int sO) {
+  // PORTRAIT: 2x2 Grid or just Minutes if no seconds
+  Widget _buildPortraitLayout(int mT, int mO, int sT, int sO, ClockStyle style) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -135,70 +147,119 @@ class _FullScreenTimerPageState extends State<FullScreenTimerPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            FlipDigit(value: mT, size: 120),
+            FlipDigit(value: mT, size: 120, style: style),
             const SizedBox(width: 10),
-            FlipDigit(value: mO, size: 120),
+            FlipDigit(value: mO, size: 120, style: style),
           ],
         ),
-        const SizedBox(height: 20),
-        // Divider (optional, or just spacing)
-        Container(
-          height: 2,
-          width: 200,
-          color: Colors.white12,
-        ),
-        const SizedBox(height: 20),
-        // Seconds
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            FlipDigit(value: sT, size: 120),
-            const SizedBox(width: 10),
-            FlipDigit(value: sO, size: 120),
-          ],
-        ),
-      ],
-    );
-  }
-
-  // LANDSCAPE: Single Row
-  // MM : SS
-  Widget _buildLandscapeLayout(int mT, int mO, int sT, int sO) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        FlipDigit(value: mT, size: 100),
-        const SizedBox(width: 8),
-        FlipDigit(value: mO, size: 100),
         
-        // Separator dots
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+        if (style.showSeconds) ...[
+          const SizedBox(height: 20),
+          // Divider
+          Container(
+            height: 2,
+            width: 200,
+            color: Colors.white12,
+          ),
+          const SizedBox(height: 20),
+          // Seconds
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _dot(),
-              const SizedBox(height: 20),
-              _dot(),
+              FlipDigit(value: sT, size: 120, style: style),
+              const SizedBox(width: 10),
+              FlipDigit(value: sO, size: 120, style: style),
             ],
           ),
-        ),
-
-        FlipDigit(value: sT, size: 100),
-        const SizedBox(width: 8),
-        FlipDigit(value: sO, size: 100),
+        ],
       ],
     );
   }
 
-  Widget _dot() {
-    return Container(
-      width: 12,
-      height: 12,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-      ),
-    );
+    // LANDSCAPE: Single Row
+
+    // MM : SS
+
+    Widget _buildLandscapeLayout(int mT, int mO, int sT, int sO, ClockStyle style) {
+
+      return Row(
+
+        mainAxisAlignment: MainAxisAlignment.center,
+
+        children: [
+
+          FlipDigit(value: mT, size: 100, style: style),
+
+          const SizedBox(width: 8),
+
+          FlipDigit(value: mO, size: 100, style: style),
+
+          
+
+          if (style.showSeconds) ...[
+
+            // Separator dots
+
+            Padding(
+
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+
+              child: Column(
+
+                mainAxisSize: MainAxisSize.min,
+
+                children: [
+
+                  _dot(style.textColor),
+
+                  const SizedBox(height: 20),
+
+                  _dot(style.textColor),
+
+                ],
+
+              ),
+
+            ),
+
+  
+
+            FlipDigit(value: sT, size: 100, style: style),
+
+            const SizedBox(width: 8),
+
+            FlipDigit(value: sO, size: 100, style: style),
+
+          ],
+
+        ],
+
+      );
+
+    }
+
+  
+
+    Widget _dot(Color color) {
+
+      return Container(
+
+        width: 12,
+
+        height: 12,
+
+        decoration: BoxDecoration(
+
+          color: color,
+
+          shape: BoxShape.circle,
+
+        ),
+
+      );
+
+    }
+
   }
-}
+
+  
