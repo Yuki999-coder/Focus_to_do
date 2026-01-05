@@ -20,7 +20,8 @@ class TimerService extends ChangeNotifier {
   // Settings
   int _focusDuration = 25;
   int _shortBreakDuration = 5;
-  String _selectedSound = 'clock-tick.mp3';
+  String _selectedSound = 'music/clock-tick.mp3';
+  String _backgroundImage = 'assets/images/bg_universe.jpg';
 
   // State
   TimerMode _currentMode = TimerMode.focus;
@@ -38,6 +39,7 @@ class TimerService extends ChangeNotifier {
   int get focusDuration => _focusDuration;
   int get shortBreakDuration => _shortBreakDuration;
   String get selectedSound => _selectedSound;
+  String get backgroundImage => _backgroundImage;
   TimerMode get currentMode => _currentMode;
   int get remainingSeconds => _remainingSeconds;
   bool get isRunning => _isRunning;
@@ -48,6 +50,10 @@ class TimerService extends ChangeNotifier {
   // Persistence Methods
   Future<void> _loadTasks() async {
     final prefs = await SharedPreferences.getInstance();
+    
+    // Load Settings
+    _backgroundImage = prefs.getString('backgroundImage') ?? 'assets/images/bg_universe.jpg';
+
     final String? tasksJson = prefs.getString('tasks');
     if (tasksJson != null) {
       final List<dynamic> decoded = jsonDecode(tasksJson);
@@ -93,6 +99,7 @@ class TimerService extends ChangeNotifier {
 
   Future<void> _saveTasks() async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('backgroundImage', _backgroundImage);
     final String encoded = jsonEncode(_tasks.map((t) => t.toJson()).toList());
     await prefs.setString('tasks', encoded);
   }
@@ -105,6 +112,12 @@ class TimerService extends ChangeNotifier {
 
   void setSound(String soundFile) {
     _selectedSound = soundFile;
+    notifyListeners();
+  }
+
+  void setBackgroundImage(String path) {
+    _backgroundImage = path;
+    _saveTasks(); // Save settings
     notifyListeners();
   }
 

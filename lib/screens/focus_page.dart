@@ -18,11 +18,24 @@ class FocusPage extends StatelessWidget {
         return Scaffold(
           body: Stack(
             children: [
-              // Background Image
+              // Background Image or Color
               Positioned.fill(
-                child: Image.asset(
-                  'assets/bg_universe.jpg',
-                  fit: BoxFit.cover,
+                child: Builder(
+                  builder: (context) {
+                    if (timerService.backgroundImage == 'color_black') {
+                      return Container(color: Colors.black);
+                    }
+                    if (timerService.backgroundImage == 'color_white') {
+                      return Container(color: Colors.white);
+                    }
+                    return Image.asset(
+                      timerService.backgroundImage,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(color: Colors.black);
+                      },
+                    );
+                  },
                 ),
               ),
               // Dark Overlay (changes color in Break Mode)
@@ -158,39 +171,85 @@ class FocusPage extends StatelessWidget {
                     // Action Button
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 40),
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if (timerService.isRunning) {
-                            timerService.pauseTimer();
-                          } else {
-                            timerService.startTimer();
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isBreak ? Colors.tealAccent : Colors.white,
-                          foregroundColor: Colors.black,
-                          minimumSize: const Size(double.infinity, 60),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(timerService.isRunning ? Icons.pause : Icons.play_arrow),
-                            const SizedBox(width: 8),
-                            Text(
-                              timerService.isRunning 
-                                  ? 'Pause' 
-                                  : (isBreak ? 'Start Break' : 'Start Focus'),
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                      child: timerService.isRunning
+                          ? Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      timerService.stopTimer();
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white24,
+                                      foregroundColor: Colors.white,
+                                      minimumSize: const Size(double.infinity, 60),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(30),
+                                      ),
+                                    ),
+                                    child: const Icon(Icons.stop),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  flex: 2,
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      timerService.pauseTimer();
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: Colors.black,
+                                      minimumSize: const Size(double.infinity, 60),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(30),
+                                      ),
+                                    ),
+                                    child: const Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.pause),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Pause',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : ElevatedButton(
+                              onPressed: () {
+                                timerService.startTimer();
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isBreak ? Colors.tealAccent : Colors.white,
+                                foregroundColor: Colors.black,
+                                minimumSize: const Size(double.infinity, 60),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.play_arrow),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    isBreak ? 'Start Break' : 'Start Focus',
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
-                      ),
                     ),
                     
                     const Spacer(),
@@ -219,7 +278,10 @@ class FocusPage extends StatelessWidget {
 
   void _showSoundPicker(BuildContext context, TimerService timerService) {
     // Hardcoded list of sounds from assets
-    final List<String> sounds = ['clock-tick.mp3', 'vine-boom.mp3'];
+    final List<Map<String, String>> sounds = [
+      {'name': 'Clock Tick', 'path': 'music/clock-tick.mp3'},
+      {'name': 'Vine Boom', 'path': 'music/vine-boom.mp3'},
+    ];
     
     showModalBottomSheet(
       context: context,
@@ -238,22 +300,22 @@ class FocusPage extends StatelessWidget {
                 style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
-              ...sounds.map((sound) {
-                final isSelected = timerService.selectedSound == sound;
+              ...sounds.map((soundItem) {
+                final isSelected = timerService.selectedSound == soundItem['path'];
                 return ListTile(
                   leading: Icon(
                     isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
                     color: isSelected ? Colors.tealAccent : Colors.grey,
                   ),
                   title: Text(
-                    sound,
+                    soundItem['name']!,
                     style: TextStyle(
                       color: isSelected ? Colors.white : Colors.white70,
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
                   ),
                   onTap: () {
-                    timerService.setSound(sound);
+                    timerService.setSound(soundItem['path']!);
                     Navigator.pop(context);
                   },
                 );
