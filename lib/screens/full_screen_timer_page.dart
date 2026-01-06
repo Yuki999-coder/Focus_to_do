@@ -94,15 +94,7 @@ class _FullScreenTimerPageState extends State<FullScreenTimerPage> {
               Center(
                 child: FittedBox(
                    fit: BoxFit.scaleDown,
-                   child: OrientationBuilder(
-                    builder: (context, orientation) {
-                      if (orientation == Orientation.portrait) {
-                        return _buildPortraitLayout(hasHours, hourTens, hourOnes, minTens, minOnes, secTens, secOnes, timerService.clockStyle);
-                      } else {
-                        return _buildLandscapeLayout(hasHours, hourTens, hourOnes, minTens, minOnes, secTens, secOnes, timerService.clockStyle);
-                      }
-                    },
-                  ),
+                   child: _buildTimerLayout(hasHours, hourTens, hourOnes, minTens, minOnes, secTens, secOnes, timerService.clockStyle),
                 ),
               ),
 
@@ -149,61 +141,8 @@ class _FullScreenTimerPageState extends State<FullScreenTimerPage> {
     );
   }
 
-  // PORTRAIT: Stacked vertically
-  Widget _buildPortraitLayout(bool hasHours, int hT, int hO, int mT, int mO, int sT, int sO, ClockStyle style) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min, // shrink wrap
-      children: [
-        if (hasHours) ...[
-          // Hours
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              FlipDigit(value: hT, size: 100, style: style),
-              const SizedBox(width: 10),
-              FlipDigit(value: hO, size: 100, style: style),
-            ],
-          ),
-          const SizedBox(height: 10),
-          // Divider text "Hours" or simple divider? Let's stick to consistent spacing
-        ],
-
-        // Minutes
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            FlipDigit(value: mT, size: 120, style: style),
-            const SizedBox(width: 10),
-            FlipDigit(value: mO, size: 120, style: style),
-          ],
-        ),
-        
-        if (style.showSeconds) ...[
-          const SizedBox(height: 20),
-          // Divider
-          Container(
-            height: 2,
-            width: 200,
-            color: Colors.white12,
-          ),
-          const SizedBox(height: 20),
-          // Seconds
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              FlipDigit(value: sT, size: 120, style: style),
-              const SizedBox(width: 10),
-              FlipDigit(value: sO, size: 120, style: style),
-            ],
-          ),
-        ],
-      ],
-    );
-  }
-
-  // LANDSCAPE: HH : MM : SS
-  Widget _buildLandscapeLayout(bool hasHours, int hT, int hO, int mT, int mO, int sT, int sO, ClockStyle style) {
+  // Unified Layout: HH : MM : SS (Horizontal Row)
+  Widget _buildTimerLayout(bool hasHours, int hT, int hO, int mT, int mO, int sT, int sO, ClockStyle style) {
     // Adjust size slightly if we have hours to fit better
     final double digitSize = hasHours ? 80 : 100;
 
@@ -257,5 +196,6 @@ class _FullScreenTimerPageState extends State<FullScreenTimerPage> {
       ),
     );
   }
+}
 
   

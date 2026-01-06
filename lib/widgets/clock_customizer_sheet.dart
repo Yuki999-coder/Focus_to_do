@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../models/clock_theme_model.dart';
 import '../services/timer_service.dart';
 import '../flip_digit.dart';
 
