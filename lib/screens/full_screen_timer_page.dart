@@ -34,17 +34,25 @@ class _FullScreenTimerPageState extends State<FullScreenTimerPage> {
     return ListenableBuilder(
       listenable: timerService,
       builder: (context, child) {
-        final totalSeconds = timerService.remainingSeconds;
+        final totalSeconds = timerService.isStopwatchMode 
+            ? timerService.remainingSeconds // Actually stopwatchSeconds via getter logic in service
+            : timerService.remainingSeconds;
+            
         final isRunning = timerService.isRunning;
 
-        // Calculate digits
-        final minutes = totalSeconds ~/ 60;
+        // Calculate digits including Hours
+        final hours = totalSeconds ~/ 3600;
+        final minutes = (totalSeconds % 3600) ~/ 60;
         final seconds = totalSeconds % 60;
 
+        final hourTens = hours ~/ 10;
+        final hourOnes = hours % 10;
         final minTens = minutes ~/ 10;
         final minOnes = minutes % 10;
         final secTens = seconds ~/ 10;
         final secOnes = seconds % 10;
+        
+        final hasHours = hours > 0;
 
         return Scaffold(
           backgroundColor: Colors.black,
@@ -84,14 +92,17 @@ class _FullScreenTimerPageState extends State<FullScreenTimerPage> {
 
               // Main Timer Display
               Center(
-                child: OrientationBuilder(
-                  builder: (context, orientation) {
-                    if (orientation == Orientation.portrait) {
-                      return _buildPortraitLayout(minTens, minOnes, secTens, secOnes, timerService.clockStyle);
-                    } else {
-                      return _buildLandscapeLayout(minTens, minOnes, secTens, secOnes, timerService.clockStyle);
-                    }
-                  },
+                child: FittedBox(
+                   fit: BoxFit.scaleDown,
+                   child: OrientationBuilder(
+                    builder: (context, orientation) {
+                      if (orientation == Orientation.portrait) {
+                        return _buildPortraitLayout(hasHours, hourTens, hourOnes, minTens, minOnes, secTens, secOnes, timerService.clockStyle);
+                      } else {
+                        return _buildLandscapeLayout(hasHours, hourTens, hourOnes, minTens, minOnes, secTens, secOnes, timerService.clockStyle);
+                      }
+                    },
+                  ),
                 ),
               ),
 
@@ -138,11 +149,26 @@ class _FullScreenTimerPageState extends State<FullScreenTimerPage> {
     );
   }
 
-  // PORTRAIT: 2x2 Grid or just Minutes if no seconds
-  Widget _buildPortraitLayout(int mT, int mO, int sT, int sO, ClockStyle style) {
+  // PORTRAIT: Stacked vertically
+  Widget _buildPortraitLayout(bool hasHours, int hT, int hO, int mT, int mO, int sT, int sO, ClockStyle style) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min, // shrink wrap
       children: [
+        if (hasHours) ...[
+          // Hours
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              FlipDigit(value: hT, size: 100, style: style),
+              const SizedBox(width: 10),
+              FlipDigit(value: hO, size: 100, style: style),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Divider text "Hours" or simple divider? Let's stick to consistent spacing
+        ],
+
         // Minutes
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -176,90 +202,60 @@ class _FullScreenTimerPageState extends State<FullScreenTimerPage> {
     );
   }
 
-    // LANDSCAPE: Single Row
+  // LANDSCAPE: HH : MM : SS
+  Widget _buildLandscapeLayout(bool hasHours, int hT, int hO, int mT, int mO, int sT, int sO, ClockStyle style) {
+    // Adjust size slightly if we have hours to fit better
+    final double digitSize = hasHours ? 80 : 100;
 
-    // MM : SS
-
-    Widget _buildLandscapeLayout(int mT, int mO, int sT, int sO, ClockStyle style) {
-
-      return Row(
-
-        mainAxisAlignment: MainAxisAlignment.center,
-
-        children: [
-
-          FlipDigit(value: mT, size: 100, style: style),
-
-          const SizedBox(width: 8),
-
-          FlipDigit(value: mO, size: 100, style: style),
-
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (hasHours) ...[
+          FlipDigit(value: hT, size: digitSize, style: style),
+          const SizedBox(width: 6),
+          FlipDigit(value: hO, size: digitSize, style: style),
           
-
-          if (style.showSeconds) ...[
-
-            // Separator dots
-
-            Padding(
-
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-
-              child: Column(
-
-                mainAxisSize: MainAxisSize.min,
-
-                children: [
-
-                  _dot(style.textColor),
-
-                  const SizedBox(height: 20),
-
-                  _dot(style.textColor),
-
-                ],
-
-              ),
-
-            ),
-
-  
-
-            FlipDigit(value: sT, size: 100, style: style),
-
-            const SizedBox(width: 8),
-
-            FlipDigit(value: sO, size: 100, style: style),
-
-          ],
-
+          _buildSeparator(digitSize, style.textColor),
         ],
 
-      );
+        FlipDigit(value: mT, size: digitSize, style: style),
+        const SizedBox(width: 6),
+        FlipDigit(value: mO, size: digitSize, style: style),
 
-    }
+        if (style.showSeconds) ...[
+          _buildSeparator(digitSize, style.textColor),
 
-  
+          FlipDigit(value: sT, size: digitSize, style: style),
+          const SizedBox(width: 6),
+          FlipDigit(value: sO, size: digitSize, style: style),
+        ],
+      ],
+    );
+  }
 
-    Widget _dot(Color color) {
+  Widget _buildSeparator(double height, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _dot(color),
+          const SizedBox(height: 16),
+          _dot(color),
+        ],
+      ),
+    );
+  }
 
-      return Container(
-
-        width: 12,
-
-        height: 12,
-
-        decoration: BoxDecoration(
-
-          color: color,
-
-          shape: BoxShape.circle,
-
-        ),
-
-      );
-
-    }
-
+  Widget _dot(Color color) {
+    return Container(
+      width: 8,
+      height: 8,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+      ),
+    );
   }
 
   
