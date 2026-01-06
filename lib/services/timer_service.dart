@@ -276,6 +276,15 @@ class TimerService extends ChangeNotifier {
     }
   }
 
+  void deleteTask(String id) {
+    _tasks.removeWhere((t) => t.id == id);
+    if (_currentTask?.id == id) {
+      _currentTask = null;
+    }
+    _saveTasks();
+    notifyListeners();
+  }
+
   /// Sets the focus duration in minutes.
   /// If currently in Focus mode and not running, updates the remaining time immediately.
   void setDuration(int minutes) {
@@ -471,8 +480,15 @@ class TimerService extends ChangeNotifier {
 
   String get formattedTime {
     final secondsToDisplay = _isStopwatchMode ? _stopwatchSeconds : _remainingSeconds;
-    final minutes = secondsToDisplay ~/ 60;
+    
+    final hours = secondsToDisplay ~/ 3600;
+    final minutes = (secondsToDisplay % 3600) ~/ 60;
     final seconds = secondsToDisplay % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+
+    if (hours > 0) {
+      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    } else {
+      return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    }
   }
 }

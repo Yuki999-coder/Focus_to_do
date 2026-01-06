@@ -131,6 +131,34 @@ class _TaskPageState extends State<TaskPage> {
                 ),
                 TextButton(
                   onPressed: () {
+                    // Confirm delete
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        backgroundColor: const Color(0xFF2C2C2C),
+                        title: const Text('Delete Task?', style: TextStyle(color: Colors.white)),
+                        content: const Text('Are you sure you want to delete this task?', style: TextStyle(color: Colors.white70)),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('No', style: TextStyle(color: Colors.white54)),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              TimerService().deleteTask(task.id);
+                              Navigator.pop(context); // Close confirm dialog
+                              Navigator.pop(context); // Close edit dialog
+                            },
+                            child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+                ),
+                TextButton(
+                  onPressed: () {
                     if (newTitle.isNotEmpty) {
                       TimerService().updateTask(
                         task.id,
@@ -141,7 +169,7 @@ class _TaskPageState extends State<TaskPage> {
                     }
                     Navigator.pop(context);
                   },
-                  child: const Text('Save', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                  child: const Text('Save', style: TextStyle(color: Colors.tealAccent, fontWeight: FontWeight.bold)),
                 ),
               ],
             );

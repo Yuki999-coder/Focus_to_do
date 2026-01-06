@@ -90,7 +90,7 @@ class FocusPage extends StatelessWidget {
                               value: 'none',
                               child: Text('No Task'),
                             ),
-                            ...timerService.tasks.map((task) => PopupMenuItem(
+                            ...timerService.tasks.where((t) => !t.isCompleted).map((task) => PopupMenuItem(
                                   value: task.id,
                                   child: Text(
                                     task.title, 
@@ -154,12 +154,18 @@ class FocusPage extends StatelessWidget {
                               color: Colors.white.withOpacity(0.3),
                             ),
                           ),
-                          Text(
-                            timerService.formattedTime,
-                            style: const TextStyle(
-                              fontSize: 64,
-                              fontWeight: FontWeight.w100,
-                              color: Colors.white,
+                          SizedBox(
+                            width: 220, // Constrain width inside the circle
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                timerService.formattedTime,
+                                style: const TextStyle(
+                                  fontSize: 64,
+                                  fontWeight: FontWeight.w100,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
                           ),
                         ],
