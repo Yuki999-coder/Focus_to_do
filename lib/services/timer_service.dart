@@ -34,6 +34,8 @@ class TimerService extends ChangeNotifier {
   int _stopwatchSeconds = 0; // Tracks elapsed time in stopwatch mode
   Timer? _timer;
   bool _isRunning = false;
+  DateTime? _timerStartTime; // For Stopwatch: When did we start counting?
+  DateTime? _timerTargetTime; // For Countdown: When will it finish?
 
   // Task Management
   Task? _currentTask;
@@ -76,7 +78,7 @@ class TimerService extends ChangeNotifier {
       final List<dynamic> decoded = jsonDecode(tasksJson);
       _tasks = decoded.map((item) => Task.fromJson(item)).toList();
     } else {
-      // Load default data if no data exists
+      // Default data logic...
       _tasks = [
         Task(
           id: '1', 
@@ -111,7 +113,104 @@ class TimerService extends ChangeNotifier {
       ];
       _saveTasks();
     }
+
+    // --- RESTORE TIMER STATE ---
+    await _restoreTimerState(prefs);
+
     notifyListeners();
+  }
+
+  Future<void> _restoreTimerState(SharedPreferences prefs) async {
+    _isRunning = prefs.getBool('timer_isRunning') ?? false;
+    _isStopwatchMode = prefs.getBool('timer_isStopwatch') ?? false;
+    _currentMode = TimerMode.values[prefs.getInt('timer_mode') ?? 0];
+    
+    final taskId = prefs.getString('timer_taskId');
+    if (taskId != null && taskId != 'none') {
+      try {
+        _currentTask = _tasks.firstWhere((t) => t.id == taskId);
+      } catch (_) {
+        _currentTask = null;
+      }
+    }
+
+    // Load saved durations
+    _focusDuration = prefs.getInt('timer_focusDuration') ?? 25;
+    _shortBreakDuration = prefs.getInt('timer_breakDuration') ?? 5;
+    _remainingSeconds = prefs.getInt('timer_remainingSeconds') ?? (_focusDuration * 60);
+    _stopwatchSeconds = prefs.getInt('timer_stopwatchSeconds') ?? 0;
+
+    // If it was running, calculate the diff
+    if (_isRunning) {
+      final String? targetTimeStr = prefs.getString('timer_targetTime');
+      final String? startTimeStr = prefs.getString('timer_startTime');
+      final String? sessionStartStr = prefs.getString('timer_sessionStartTime');
+
+      if (sessionStartStr != null) {
+        _currentSessionStartTime = DateTime.parse(sessionStartStr);
+      }
+
+      final now = DateTime.now();
+
+      if (_isStopwatchMode) {
+        if (startTimeStr != null) {
+          final startTime = DateTime.parse(startTimeStr);
+          // Elapsed = Now - StartTime
+          // But we need to account for what was already in stopwatchSeconds if we paused/resumed?
+          // Strategy: In startTimer (stopwatch), we saved startTime = Now - currentStopwatchSeconds.
+          // So Now - startTime is the TOTAL stopwatch time.
+          final diff = now.difference(startTime).inSeconds;
+          _stopwatchSeconds = diff > 0 ? diff : 0;
+          startTimer(restore: true);
+        }
+      } else {
+        // Countdown
+        if (targetTimeStr != null) {
+          final targetTime = DateTime.parse(targetTimeStr);
+          final diff = targetTime.difference(now).inSeconds;
+          
+          if (diff <= 0) {
+            // Timer finished while app was closed
+            _remainingSeconds = 0;
+            _isRunning = false;
+            _handleTimerComplete();
+          } else {
+            _remainingSeconds = diff;
+            startTimer(restore: true);
+          }
+        }
+      }
+    }
+  }
+
+  Future<void> _saveTimerState() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('timer_isRunning', _isRunning);
+    await prefs.setBool('timer_isStopwatch', _isStopwatchMode);
+    await prefs.setInt('timer_mode', _currentMode.index);
+    await prefs.setString('timer_taskId', _currentTask?.id ?? 'none');
+    await prefs.setInt('timer_focusDuration', _focusDuration);
+    await prefs.setInt('timer_breakDuration', _shortBreakDuration);
+    await prefs.setInt('timer_remainingSeconds', _remainingSeconds);
+    await prefs.setInt('timer_stopwatchSeconds', _stopwatchSeconds);
+
+    if (_timerTargetTime != null) {
+      await prefs.setString('timer_targetTime', _timerTargetTime!.toIso8601String());
+    } else {
+      await prefs.remove('timer_targetTime');
+    }
+
+    if (_timerStartTime != null) {
+      await prefs.setString('timer_startTime', _timerStartTime!.toIso8601String());
+    } else {
+      await prefs.remove('timer_startTime');
+    }
+    
+    if (_currentSessionStartTime != null) {
+      await prefs.setString('timer_sessionStartTime', _currentSessionStartTime!.toIso8601String());
+    } else {
+      await prefs.remove('timer_sessionStartTime');
+    }
   }
 
   Future<void> _saveTasks() async {
@@ -125,6 +224,7 @@ class TimerService extends ChangeNotifier {
   // Task Methods
   void selectTask(Task? task) {
     _currentTask = task;
+    _saveTimerState(); // Save selection
     notifyListeners();
   }
 
@@ -172,6 +272,7 @@ class TimerService extends ChangeNotifier {
     _isStopwatchMode = false; // Reset to Timer mode when duration is set
     if (_currentMode == TimerMode.focus && !_isRunning) {
       _remainingSeconds = _focusDuration * 60;
+      _saveTimerState();
       notifyListeners();
     }
   }
@@ -181,6 +282,7 @@ class TimerService extends ChangeNotifier {
     _stopwatchSeconds = 0;
     _currentMode = TimerMode.focus; // Stopwatch is usually for focus
     if (!_isRunning) {
+      _saveTimerState();
       notifyListeners();
     }
   }
@@ -191,6 +293,7 @@ class TimerService extends ChangeNotifier {
     _shortBreakDuration = minutes;
     if (_currentMode == TimerMode.breakMode && !_isRunning) {
       _remainingSeconds = _shortBreakDuration * 60;
+      _saveTimerState();
       notifyListeners();
     }
   }
@@ -203,56 +306,91 @@ class TimerService extends ChangeNotifier {
       _currentMode = TimerMode.focus;
       _isStopwatchMode = false; // Reset to standard timer or keep preference? Reset safe.
       _remainingSeconds = _focusDuration * 60;
+      _saveTimerState();
       notifyListeners();
     }
   }
 
-  void startTimer() {
-    if (_isRunning) return;
+  void startTimer({bool restore = false}) {
+    if (_isRunning && !restore) return;
     
     _isRunning = true;
-    _currentSessionStartTime ??= DateTime.now(); // Only set if not already set (resume)
+    
+    if (!restore) {
+      _currentSessionStartTime ??= DateTime.now();
+      
+      if (_isStopwatchMode) {
+        // For stopwatch, "StartTime" is Now minus what we already have.
+        // e.g. We have 10s. Now is 12:00:10. StartTime was 12:00:00.
+        _timerStartTime = DateTime.now().subtract(Duration(seconds: _stopwatchSeconds));
+        _timerTargetTime = null;
+      } else {
+        // For Countdown, "TargetTime" is Now + Remaining.
+        _timerTargetTime = DateTime.now().add(Duration(seconds: _remainingSeconds));
+        _timerStartTime = null;
+      }
+      _saveTimerState();
+    }
+    
     notifyListeners();
     
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      // Re-sync with real time to prevent drift and handle simple backgrounding
+      final now = DateTime.now();
+
       if (_isStopwatchMode) {
-        _stopwatchSeconds++;
+        if (_timerStartTime != null) {
+          final diff = now.difference(_timerStartTime!).inSeconds;
+          _stopwatchSeconds = diff;
+        } else {
+           _stopwatchSeconds++; // Fallback
+        }
+        
         // Track time for current task if in Focus mode
         if (_currentMode == TimerMode.focus && _currentTask != null) {
-          _currentTask!.secondsSpent++;
+          _currentTask!.secondsSpent++; // This logic needs to be smarter for persistence, but ok for now
         }
         notifyListeners();
       } else {
-        if (_remainingSeconds > 0) {
-          _remainingSeconds--;
-          
-          // Track time for current task if in Focus mode
-          if (_currentMode == TimerMode.focus && _currentTask != null) {
-            _currentTask!.secondsSpent++;
-          }
-          
-          notifyListeners();
+        // Countdown
+        if (_timerTargetTime != null) {
+             final diff = _timerTargetTime!.difference(now).inSeconds;
+             if (diff > 0) {
+               _remainingSeconds = diff;
+             } else {
+               _remainingSeconds = 0;
+               _handleTimerComplete();
+               return;
+             }
         } else {
-          _handleTimerComplete();
+           if (_remainingSeconds > 0) {
+            _remainingSeconds--;
+           } else {
+            _handleTimerComplete();
+            return;
+           }
         }
+
+        // Track time for current task if in Focus mode
+        if (_currentMode == TimerMode.focus && _currentTask != null) {
+            _currentTask!.secondsSpent++;
+        }
+        
+        notifyListeners();
       }
     });
   }
 
   void pauseTimer() {
     _logSession(); 
-    // For Stopwatch, we might want to log the chunk, but keep the start time reference?
-    // Actually _logSession uses difference from _currentSessionStartTime.
-    // If we nullify it, we lose the start. But if we don't, duration increases during pause?
-    // Better: _logSession calculates elapsed. We should reset start time on resume.
-    // In startTimer: _currentSessionStartTime ??= DateTime.now(); handles resume if null.
-    // If we pause, we log what we did. So next start is a "new" session chunk.
-    // So current logic is fine for logging chunks.
     
     _timer?.cancel();
     _timer = null;
     _isRunning = false;
     _currentSessionStartTime = null; // Prepare for next chunk
+    _timerStartTime = null;
+    _timerTargetTime = null;
+    _saveTimerState();
     notifyListeners();
   }
 
@@ -262,6 +400,9 @@ class TimerService extends ChangeNotifier {
     _timer = null;
     _isRunning = false;
     _resetToCurrentModeStart();
+    _timerStartTime = null;
+    _timerTargetTime = null;
+    _saveTimerState();
     notifyListeners();
   }
 
@@ -281,6 +422,9 @@ class TimerService extends ChangeNotifier {
   }
 
   void _resetToCurrentModeStart() {
+    if (_isStopwatchMode) {
+      _stopwatchSeconds = 0;
+    }
     if (_currentMode == TimerMode.focus) {
       _remainingSeconds = _focusDuration * 60;
     } else {
