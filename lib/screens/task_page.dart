@@ -13,12 +13,145 @@ class TaskPage extends StatefulWidget {
 class _TaskPageState extends State<TaskPage> {
   String _selectedFilter = 'Today';
   final List<String> _filters = ['Today', 'Tomorrow', 'This Week'];
+  bool _showCompleted = false;
 
   void _toggleTask(String id) {
     TimerService().toggleTask(id);
   }
 
-    void _addNewTask() {
+  void _editTask(dynamic task) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        String newTitle = task.title;
+        DateTime selectedDate = task.dueDate;
+        TimeOfDay? selectedTime = task.reminderTime;
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF2C2C2C),
+              title: const Text('Edit Task', style: TextStyle(color: Colors.white)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    autofocus: true,
+                    controller: TextEditingController(text: newTitle),
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      hintText: 'Enter task name...',
+                      hintStyle: TextStyle(color: Colors.white54),
+                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white54)),
+                      focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.redAccent)),
+                    ),
+                    onChanged: (value) => newTitle = value,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      // Date Picker
+                      TextButton.icon(
+                        icon: const Icon(Icons.calendar_today, color: Colors.white70, size: 18),
+                        label: Text(
+                          "${selectedDate.day}/${selectedDate.month}",
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDate,
+                            firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                            builder: (context, child) {
+                              return Theme(
+                                data: ThemeData.dark().copyWith(
+                                  colorScheme: const ColorScheme.dark(
+                                    primary: Colors.redAccent,
+                                    onPrimary: Colors.white,
+                                    surface: Color(0xFF2C2C2C),
+                                    onSurface: Colors.white,
+                                  ),
+                                  dialogBackgroundColor: const Color(0xFF2C2C2C),
+                                ),
+                                child: child!,
+                              );
+                            },
+                          );
+                          if (picked != null) {
+                            setState(() => selectedDate = picked);
+                          }
+                        },
+                      ),
+                      const Spacer(),
+                      // Time Picker (Reminder)
+                      TextButton.icon(
+                        icon: Icon(
+                          Icons.notifications, 
+                          color: selectedTime != null ? Colors.redAccent : Colors.white70, 
+                          size: 18
+                        ),
+                        label: Text(
+                          selectedTime != null ? selectedTime!.format(context) : 'No Reminder',
+                          style: TextStyle(
+                            color: selectedTime != null ? Colors.redAccent : Colors.white70
+                          ),
+                        ),
+                        onPressed: () async {
+                          final picked = await showTimePicker(
+                            context: context,
+                            initialTime: selectedTime ?? TimeOfDay.now(),
+                            builder: (context, child) {
+                              return Theme(
+                                data: ThemeData.dark().copyWith(
+                                  colorScheme: const ColorScheme.dark(
+                                    primary: Colors.redAccent,
+                                    onPrimary: Colors.white,
+                                    surface: Color(0xFF2C2C2C),
+                                    onSurface: Colors.white,
+                                  ),
+                                ),
+                                child: child!,
+                              );
+                            },
+                          );
+                          if (picked != null) {
+                            setState(() => selectedTime = picked);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+                ),
+                TextButton(
+                  onPressed: () {
+                    if (newTitle.isNotEmpty) {
+                      TimerService().updateTask(
+                        task.id,
+                        newTitle,
+                        selectedDate,
+                        selectedTime,
+                      );
+                    }
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Save', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _addNewTask() {
 
       showDialog(
 
@@ -282,75 +415,99 @@ class _TaskPageState extends State<TaskPage> {
 
   
 
-      List<dynamic> _filterTasks(List<dynamic> tasks) {
+        List<dynamic> _filterTasks(List<dynamic> tasks) {
 
   
 
-         final now = DateTime.now();
+          final now = DateTime.now();
 
   
 
-         final todayStart = DateTime(now.year, now.month, now.day);
+          final todayStart = DateTime(now.year, now.month, now.day);
 
   
 
-         
+      
 
   
 
-         return tasks.where((task) {
+          return tasks.where((task) {
 
   
 
-           final taskDate = DateTime(task.dueDate.year, task.dueDate.month, task.dueDate.day);
+            // 1. Filter by Completion status
 
   
 
-           final diffDays = taskDate.difference(todayStart).inDays;
+            if (task.isCompleted && !_showCompleted) {
 
   
 
-    
+              return false;
 
   
 
-           if (_selectedFilter == 'Today') {
+            }
 
   
 
-             return diffDays == 0;
+      
 
   
 
-           } else if (_selectedFilter == 'Tomorrow') {
+            // 2. Filter by Date
 
   
 
-             return diffDays == 1;
+            final taskDate = DateTime(task.dueDate.year, task.dueDate.month, task.dueDate.day);
 
   
 
-           } else if (_selectedFilter == 'This Week') {
+            final diffDays = taskDate.difference(todayStart).inDays;
 
   
 
-             return diffDays >= 0 && diffDays <= 7;
+      
 
   
 
-           }
+            if (_selectedFilter == 'Today') {
 
   
 
-           return true;
+              return diffDays == 0;
 
   
 
-         }).toList();
+            } else if (_selectedFilter == 'Tomorrow') {
 
   
 
-      }
+              return diffDays == 1;
+
+  
+
+            } else if (_selectedFilter == 'This Week') {
+
+  
+
+              return diffDays >= 0 && diffDays <= 7;
+
+  
+
+            }
+
+  
+
+            return true;
+
+  
+
+          }).toList();
+
+  
+
+        }
 
   
 
@@ -466,139 +623,99 @@ class _TaskPageState extends State<TaskPage> {
 
   
 
-            actions: [
+                      actions: [
 
   
 
-              IconButton(
+                        PopupMenuButton<String>(
 
   
 
-                icon: const Icon(Icons.more_horiz, color: Colors.white),
+                          icon: const Icon(Icons.more_horiz, color: Colors.white),
 
   
 
-                onPressed: () {},
+                          color: const Color(0xFF2C2C2C),
 
   
 
-              ),
+                          onSelected: (value) {
 
   
 
-            ],
+                            if (value == 'toggle_completed') {
 
   
 
-          ),
+                              setState(() {
 
   
 
-          body: ListenableBuilder(
+                                _showCompleted = !_showCompleted;
 
   
 
-            listenable: timerService,
+                              });
 
   
 
-            builder: (context, child) {
+                            }
 
   
 
-              final filteredTasks = _filterTasks(timerService.tasks);
+                          },
 
   
 
-    
+                          itemBuilder: (BuildContext context) {
 
   
 
-              return Padding(
+                            return [
 
   
 
-                padding: const EdgeInsets.all(16.0),
+                              PopupMenuItem<String>(
 
   
 
-                child: filteredTasks.isEmpty 
+                                value: 'toggle_completed',
 
   
 
-                  ? Center(child: Text("No tasks for $_selectedFilter", style: const TextStyle(color: Colors.white54)))
+                                child: Row(
 
   
 
-                  : ListView.builder(
+                                  children: [
 
   
 
-                  itemCount: filteredTasks.length,
+                                    Icon(
 
   
 
-                  itemBuilder: (context, index) {
+                                      _showCompleted ? Icons.check_box : Icons.check_box_outline_blank,
 
   
 
-                    final task = filteredTasks[index];
+                                      color: Colors.redAccent,
 
   
 
-                    return Row(
+                                    ),
 
   
 
-                      children: [
+                                    const SizedBox(width: 8),
 
   
 
-                        Expanded(
+                                    const Text('Show Completed', style: TextStyle(color: Colors.white)),
 
   
 
-                          child: TaskItem(
-
-  
-
-                            task: task,
-
-  
-
-                            onToggle: () => _toggleTask(task.id),
-
-  
-
-                            onTap: () {
-
-  
-
-                              // Just select, don't navigate
-
-  
-
-                              timerService.selectTask(task);
-
-  
-
-                              ScaffoldMessenger.of(context).showSnackBar(
-
-  
-
-                                SnackBar(
-
-  
-
-                                  content: Text('Selected: ${task.title}'),
-
-  
-
-                                  duration: const Duration(milliseconds: 500),
-
-  
-
-                                  backgroundColor: Colors.grey[800],
+                                  ],
 
   
 
@@ -606,15 +723,15 @@ class _TaskPageState extends State<TaskPage> {
 
   
 
-                              );
+                              ),
 
   
 
-                            },
+                            ];
 
   
 
-                          ),
+                          },
 
   
 
@@ -622,7 +739,99 @@ class _TaskPageState extends State<TaskPage> {
 
   
 
-                        // Play Button to start focus on this task
+                      ],
+
+  
+
+                      ),
+
+  
+
+                      body: ListenableBuilder(
+
+  
+
+                        listenable: timerService,
+
+  
+
+                        builder: (context, child) {
+
+  
+
+                          final filteredTasks = _filterTasks(timerService.tasks);
+
+  
+
+                          return Padding(
+
+  
+
+                            padding: const EdgeInsets.all(16.0),
+
+  
+
+                            child: filteredTasks.isEmpty 
+
+  
+
+                              ? Center(child: Text("No tasks for $_selectedFilter", style: const TextStyle(color: Colors.white54)))
+
+  
+
+                              : ListView.builder(
+
+  
+
+                              itemCount: filteredTasks.length,
+
+  
+
+                              itemBuilder: (context, index) {
+
+  
+
+                                final task = filteredTasks[index];
+
+  
+
+                                return Row(
+
+  
+
+                                  children: [
+
+  
+
+                                    Expanded(
+
+  
+
+                                      child: TaskItem(
+
+  
+
+                                        task: task,
+
+  
+
+                                        onToggle: () => _toggleTask(task.id),
+
+  
+
+                                        onTap: () => _editTask(task),
+
+  
+
+                                      ),
+
+  
+
+                                    ),
+
+  
+
+                                    // Play Button to start focus on this task
 
   
 

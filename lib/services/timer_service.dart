@@ -265,6 +265,17 @@ class TimerService extends ChangeNotifier {
     }
   }
 
+  void updateTask(String id, String newTitle, DateTime newDate, TimeOfDay? newReminder) {
+    final index = _tasks.indexWhere((t) => t.id == id);
+    if (index != -1) {
+      _tasks[index].title = newTitle;
+      _tasks[index].dueDate = newDate;
+      _tasks[index].reminderTime = newReminder;
+      _saveTasks();
+      notifyListeners();
+    }
+  }
+
   /// Sets the focus duration in minutes.
   /// If currently in Focus mode and not running, updates the remaining time immediately.
   void setDuration(int minutes) {
