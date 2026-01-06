@@ -374,7 +374,8 @@ class TimerService extends ChangeNotifier {
       } else {
         // Countdown
         if (_timerTargetTime != null) {
-             final diff = _timerTargetTime!.difference(now).inSeconds;
+             final diffMs = _timerTargetTime!.difference(now).inMilliseconds;
+             final diff = (diffMs / 1000).ceil();
              if (diff > 0) {
                _remainingSeconds = diff;
              } else {
