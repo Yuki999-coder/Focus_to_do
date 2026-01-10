@@ -380,54 +380,28 @@ class _StatsPageState extends State<StatsPage> {
   }
 
   Widget _buildChart(Map<int, int> data) {
-    List<BarChartGroupData> barGroups = [];
+    List<FlSpot> spots = [];
     int maxVal = 1;
     
-    // Sort keys to ensure order
     final sortedKeys = data.keys.toList()..sort();
     
     for (var key in sortedKeys) {
       if (data[key]! > maxVal) maxVal = data[key]!;
-    }
-    
-    for (var key in sortedKeys) {
-       barGroups.add(
-         BarChartGroupData(
-           x: key,
-           barRods: [
-             BarChartRodData(
-               toY: data[key]!.toDouble(),
-               color: Colors.redAccent,
-               width: (_selectedPeriod == StatPeriod.month || _selectedPeriod == StatPeriod.year) ? 8 : 12,
-               borderRadius: BorderRadius.circular(4),
-               backDrawRodData: BackgroundBarChartRodData(
-                 show: true,
-                 toY: maxVal.toDouble(),
-                 color: const Color(0xFF2C2C2C),
-               )
-             )
-           ],
-         )
-       );
+      spots.add(FlSpot(key.toDouble(), data[key]!.toDouble()));
     }
 
     return Container(
       height: 200,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: BarChart(
-        BarChartData(
-          alignment: BarChartAlignment.spaceAround,
-          maxY: maxVal.toDouble() * 1.1, // little buffer
-          barTouchData: BarTouchData(
-             touchTooltipData: BarTouchTooltipData(
-               getTooltipColor: (_) => Colors.grey[800]!,
-               getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                 return BarTooltipItem(
-                   _formatDuration(rod.toY.toInt()),
-                   const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                 );
-               },
-             ),
+      child: LineChart(
+        LineChartData(
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            getDrawingHorizontalLine: (value) => const FlLine(
+              color: Colors.white10,
+              strokeWidth: 1,
+            ),
           ),
           titlesData: FlTitlesData(
             show: true,
@@ -437,6 +411,8 @@ class _StatsPageState extends State<StatsPage> {
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
+                reservedSize: 30,
+                interval: 1,
                 getTitlesWidget: (value, meta) {
                   final intVal = value.toInt();
                   String text = '';
@@ -460,9 +436,77 @@ class _StatsPageState extends State<StatsPage> {
               ),
             ),
           ),
-          gridData: const FlGridData(show: false),
           borderData: FlBorderData(show: false),
+          minX: sortedKeys.first.toDouble(),
+          maxX: sortedKeys.last.toDouble(),
+          minY: 0,
+          maxY: maxVal.toDouble() * 1.1,
+          lineBarsData: [
+            LineChartBarData(
+              spots: spots,
+              isCurved: true,
+              color: Colors.redAccent,
+              barWidth: 3,
+              isStrokeCapRound: true,
+              dotData: const FlDotData(show: false),
+              belowBarData: BarAreaData(
+                show: true,
+                color: Colors.redAccent.withOpacity(0.2),
+              ),
+            ),
+          ],
+           lineTouchData: LineTouchData(
+             touchTooltipData: LineTouchTooltipData(
+               getTooltipColor: (_) => Colors.grey[800]!,
+               getTooltipItems: (touchedSpots) {
+                 return touchedSpots.map((spot) {
+                   return LineTooltipItem(
+                     _formatDuration(spot.y.toInt()),
+                     const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                   );
+                 }).toList();
+               },
+             ),
+           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildEvaluation(int totalSeconds) {
+    String message;
+    Color color;
+
+    double dailyAverageSeconds = totalSeconds.toDouble();
+    if (_selectedPeriod == StatPeriod.week) dailyAverageSeconds /= 7;
+    if (_selectedPeriod == StatPeriod.month) dailyAverageSeconds /= 30;
+    if (_selectedPeriod == StatPeriod.year) dailyAverageSeconds /= 365;
+
+    if (dailyAverageSeconds < 1800) { // < 30 mins
+      message = "Just getting started. Keep it up!";
+      color = Colors.white54;
+    } else if (dailyAverageSeconds < 7200) { // < 2 hours
+      message = "Good progress! Consistent effort.";
+      color = Colors.lightBlueAccent;
+    } else if (dailyAverageSeconds < 14400) { // < 4 hours
+      message = "Great work! Very productive.";
+      color = Colors.greenAccent;
+    } else { // > 4 hours
+      message = "Outstanding! You are a focus master.";
+      color = Colors.redAccent;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        message,
+        style: TextStyle(color: color, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -527,7 +571,10 @@ class _StatsPageState extends State<StatsPage> {
                   style: const TextStyle(color: Colors.white54, fontSize: 14),
                 ),
                 
-                const SizedBox(height: 30),
+                const SizedBox(height: 10),
+                _buildEvaluation(totalTime),
+                
+                const SizedBox(height: 20),
                 
                 // Chart
                 _buildChart(chartData),
