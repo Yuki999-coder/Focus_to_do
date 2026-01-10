@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path_utils;
 import '../models/task.dart';
 import '../models/clock_theme_model.dart';
 
@@ -26,6 +29,8 @@ class TimerService extends ChangeNotifier {
   
   // Customization
   ClockStyle _clockStyle = const ClockStyle();
+  List<String> _customBackgrounds = [];
+  List<Map<String, String>> _customSounds = [];
 
   // State
   TimerMode _currentMode = TimerMode.focus;
@@ -56,6 +61,8 @@ class TimerService extends ChangeNotifier {
   
   List<Task> get tasks => _tasks;
   Task? get currentTask => _currentTask;
+  List<String> get customBackgrounds => _customBackgrounds;
+  List<Map<String, String>> get customSounds => _customSounds;
 
   // Persistence Methods
   Future<void> _loadTasks() async {
@@ -63,6 +70,7 @@ class TimerService extends ChangeNotifier {
     
     // Load Settings
     _backgroundImage = prefs.getString('backgroundImage') ?? 'assets/images/bg_universe.jpg';
+    _selectedSound = prefs.getString('selectedSound') ?? 'music/clock-tick.mp3';
     
     final String? styleJson = prefs.getString('clockStyle');
     if (styleJson != null) {
@@ -71,6 +79,15 @@ class TimerService extends ChangeNotifier {
       } catch (e) {
         debugPrint("Error loading clock style: $e");
       }
+    }
+
+    // Load Custom Assets
+    _customBackgrounds = prefs.getStringList('customBackgrounds') ?? [];
+    
+    final String? soundsJson = prefs.getString('customSounds');
+    if (soundsJson != null) {
+      final List<dynamic> decoded = jsonDecode(soundsJson);
+      _customSounds = decoded.map((e) => Map<String, String>.from(e)).toList();
     }
 
     final String? tasksJson = prefs.getString('tasks');
@@ -155,10 +172,6 @@ class TimerService extends ChangeNotifier {
       if (_isStopwatchMode) {
         if (startTimeStr != null) {
           final startTime = DateTime.parse(startTimeStr);
-          // Elapsed = Now - StartTime
-          // But we need to account for what was already in stopwatchSeconds if we paused/resumed?
-          // Strategy: In startTimer (stopwatch), we saved startTime = Now - currentStopwatchSeconds.
-          // So Now - startTime is the TOTAL stopwatch time.
           final diff = now.difference(startTime).inSeconds;
           _stopwatchSeconds = diff > 0 ? diff : 0;
           startTimer(restore: true);
@@ -216,9 +229,48 @@ class TimerService extends ChangeNotifier {
   Future<void> _saveTasks() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('backgroundImage', _backgroundImage);
+    await prefs.setString('selectedSound', _selectedSound);
     await prefs.setString('clockStyle', jsonEncode(_clockStyle.toJson()));
     final String encoded = jsonEncode(_tasks.map((t) => t.toJson()).toList());
     await prefs.setString('tasks', encoded);
+    
+    // Save Custom Assets
+    await prefs.setStringList('customBackgrounds', _customBackgrounds);
+    await prefs.setString('customSounds', jsonEncode(_customSounds));
+  }
+
+  Future<void> addCustomBackground(String sourcePath) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final fileName = path_utils.basename(sourcePath);
+    final savedPath = path_utils.join(appDir.path, 'backgrounds', fileName);
+    
+    final savedFile = File(savedPath);
+    if (!await savedFile.parent.exists()) {
+      await savedFile.parent.create(recursive: true);
+    }
+    
+    await File(sourcePath).copy(savedPath);
+    
+    _customBackgrounds.add(savedPath);
+    _saveTasks();
+    notifyListeners();
+  }
+
+  Future<void> addCustomSound(String name, String sourcePath) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final fileName = path_utils.basename(sourcePath);
+    final savedPath = path_utils.join(appDir.path, 'sounds', fileName);
+    
+    final savedFile = File(savedPath);
+    if (!await savedFile.parent.exists()) {
+      await savedFile.parent.create(recursive: true);
+    }
+    
+    await File(sourcePath).copy(savedPath);
+    
+    _customSounds.add({'name': name, 'path': savedPath});
+    _saveTasks();
+    notifyListeners();
   }
 
   // Task Methods
@@ -460,9 +512,13 @@ class TimerService extends ChangeNotifier {
     _isRunning = false;
 
     // Task 2: Play a notification sound
-    debugPrint("Timer finished. Playing notification sound...");
+    debugPrint("Timer finished. Playing notification sound: $_selectedSound");
     try {
-      await _audioPlayer.play(AssetSource(_selectedSound));
+      if (_selectedSound.startsWith('music/')) {
+        await _audioPlayer.play(AssetSource(_selectedSound));
+      } else {
+        await _audioPlayer.play(DeviceFileSource(_selectedSound));
+      }
     } catch (e) {
       debugPrint("Error playing sound: $e");
     }

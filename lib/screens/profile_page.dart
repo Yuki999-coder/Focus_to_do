@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import '../services/timer_service.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -74,6 +76,13 @@ class ProfilePage extends StatelessWidget {
               ),
 
               _buildListTile(
+                icon: Icons.music_note,
+                title: 'Focus Sound',
+                subtitle: 'Change completion sound',
+                onTap: () => _showSoundPicker(context, timerService),
+              ),
+
+              _buildListTile(
                 icon: Icons.notifications,
                 title: 'Notifications',
                 subtitle: 'Manage app notifications',
@@ -117,6 +126,93 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
+  void _showSoundPicker(BuildContext context, TimerService timerService) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        final List<Map<String, String>> sounds = [
+          {'name': 'Clock Tick', 'path': 'music/clock-tick.mp3'},
+          {'name': 'Vine Boom', 'path': 'music/vine-boom.mp3'},
+        ];
+        sounds.addAll(timerService.customSounds);
+
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+               Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Select Sound',
+                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    TextButton.icon(
+                      onPressed: () async {
+                        FilePickerResult? result = await FilePicker.platform.pickFiles(
+                          type: FileType.audio,
+                        );
+
+                        if (result != null) {
+                          String? filePath = result.files.single.path;
+                          String fileName = result.files.single.name;
+                          if (filePath != null) {
+                            await timerService.addCustomSound(fileName, filePath);
+                            if (context.mounted) {
+                              Navigator.pop(context); // Close to refresh or just setState
+                              _showSoundPicker(context, timerService); // Re-open to show new item
+                            }
+                          }
+                        }
+                      },
+                      icon: const Icon(Icons.add, color: Colors.tealAccent),
+                      label: const Text('Add', style: TextStyle(color: Colors.tealAccent)),
+                    )
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              Expanded(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: sounds.length,
+                  itemBuilder: (context, index) {
+                    final soundItem = sounds[index];
+                    final isSelected = timerService.selectedSound == soundItem['path'];
+                    return ListTile(
+                      leading: Icon(
+                        isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                        color: isSelected ? Colors.tealAccent : Colors.grey,
+                      ),
+                      title: Text(
+                        soundItem['name']!,
+                        style: TextStyle(
+                          color: isSelected ? Colors.white : Colors.white70,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                      onTap: () {
+                        timerService.setSound(soundItem['path']!);
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _showBackgroundPicker(BuildContext context, TimerService timerService) {
     final List<Map<String, String>> options = [
       {'type': 'color', 'value': 'color_black', 'label': 'Black'},
@@ -125,6 +221,11 @@ class ProfilePage extends StatelessWidget {
       {'type': 'image', 'value': 'assets/images/hinh-nen-oppo-1.jpg'},
       {'type': 'image', 'value': 'assets/images/images.jpg'},
     ];
+
+    // Add custom images
+    for (var path in timerService.customBackgrounds) {
+       options.add({'type': 'file', 'value': path});
+    }
 
     showModalBottomSheet(
       context: context,
@@ -135,17 +236,41 @@ class ProfilePage extends StatelessWidget {
       builder: (context) {
         return Container(
           padding: const EdgeInsets.all(20),
-          height: 350,
+          height: 400,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Select Background',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Select Background',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_photo_alternate, color: Colors.tealAccent),
+                    onPressed: () async {
+                      FilePickerResult? result = await FilePicker.platform.pickFiles(
+                        type: FileType.image,
+                      );
+
+                      if (result != null) {
+                        String? filePath = result.files.single.path;
+                        if (filePath != null) {
+                          await timerService.addCustomBackground(filePath);
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            _showBackgroundPicker(context, timerService);
+                          }
+                        }
+                      }
+                    },
+                  )
+                ],
               ),
               const SizedBox(height: 20),
               Expanded(
@@ -160,6 +285,13 @@ class ProfilePage extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final option = options[index];
                     final isSelected = timerService.backgroundImage == option['value'];
+
+                    ImageProvider? imgProvider;
+                    if (option['type'] == 'image') {
+                      imgProvider = AssetImage(option['value']!);
+                    } else if (option['type'] == 'file') {
+                      imgProvider = FileImage(File(option['value']!));
+                    }
 
                     return GestureDetector(
                       onTap: () {
@@ -177,9 +309,9 @@ class ProfilePage extends StatelessWidget {
                               : (option['type'] == 'color' && option['value'] == 'color_white'
                                   ? Colors.white
                                   : Colors.grey[900]),
-                          image: option['type'] == 'image'
+                          image: imgProvider != null
                               ? DecorationImage(
-                                  image: AssetImage(option['value']!),
+                                  image: imgProvider,
                                   fit: BoxFit.cover,
                                 )
                               : null,

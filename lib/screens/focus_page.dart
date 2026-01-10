@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../services/timer_service.dart';
@@ -28,13 +29,25 @@ class FocusPage extends StatelessWidget {
                     if (timerService.backgroundImage == 'color_white') {
                       return Container(color: Colors.white);
                     }
-                    return Image.asset(
-                      timerService.backgroundImage,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(color: Colors.black);
-                      },
-                    );
+                    
+                    if (timerService.backgroundImage.startsWith('assets/')) {
+                       return Image.asset(
+                        timerService.backgroundImage,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(color: Colors.black);
+                        },
+                      );
+                    } else {
+                      // Assume local file
+                      return Image.file(
+                        File(timerService.backgroundImage),
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                           return Container(color: Colors.black);
+                        },
+                      );
+                    }
                   },
                 ),
               ),
@@ -361,11 +374,14 @@ class FocusPage extends StatelessWidget {
   }
 
   void _showSoundPicker(BuildContext context, TimerService timerService) {
-    // Hardcoded list of sounds from assets
+    // Default sounds
     final List<Map<String, String>> sounds = [
       {'name': 'Clock Tick', 'path': 'music/clock-tick.mp3'},
       {'name': 'Vine Boom', 'path': 'music/vine-boom.mp3'},
     ];
+    
+    // Add custom sounds
+    sounds.addAll(timerService.customSounds);
     
     showModalBottomSheet(
       context: context,
