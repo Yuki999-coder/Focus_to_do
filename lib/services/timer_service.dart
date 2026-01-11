@@ -392,6 +392,7 @@ class TimerService extends ChangeNotifier {
 
   void skipBreak() {
     if (_currentMode == TimerMode.breakMode) {
+      _logSession(); // Ensure any pending session state is cleared
       _timer?.cancel();
       _timer = null;
       _isRunning = false;
@@ -500,15 +501,17 @@ class TimerService extends ChangeNotifier {
   }
 
   void _logSession() {
-    if (_currentMode == TimerMode.focus && _currentTask != null && _currentSessionStartTime != null) {
-      final now = DateTime.now();
-      final duration = now.difference(_currentSessionStartTime!).inSeconds;
-      if (duration > 0) {
-         _currentTask!.sessions.add(FocusSession(
-           startTime: _currentSessionStartTime!, 
-           durationSeconds: duration
-         ));
-         _saveTasks();
+    if (_currentSessionStartTime != null) {
+      if (_currentMode == TimerMode.focus && _currentTask != null) {
+        final now = DateTime.now();
+        final duration = now.difference(_currentSessionStartTime!).inSeconds;
+        if (duration > 0) {
+           _currentTask!.sessions.add(FocusSession(
+             startTime: _currentSessionStartTime!, 
+             durationSeconds: duration
+           ));
+           _saveTasks();
+        }
       }
       _currentSessionStartTime = null;
     }
