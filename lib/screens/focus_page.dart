@@ -192,7 +192,7 @@ class FocusPage extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 40),
                       child: Column(
                         children: [
-                          if (timerService.isRunning)
+                          if (timerService.isRunning) ...[
                             Row(
                               children: [
                                 Expanded(
@@ -243,8 +243,22 @@ class FocusPage extends StatelessWidget {
                                   ),
                                 ),
                               ],
-                            )
-                          else if ((timerService.isStopwatchMode && timerService.remainingSeconds > 0) ||
+                            ),
+                            if (isBreak)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 16),
+                                child: TextButton.icon(
+                                  onPressed: () {
+                                    timerService.skipBreak();
+                                  },
+                                  icon: const Icon(Icons.skip_next, color: Colors.white70),
+                                  label: const Text(
+                                    'Skip Break',
+                                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                                  ),
+                                ),
+                              ),
+                          ] else if ((timerService.isStopwatchMode && timerService.remainingSeconds > 0) ||
                               (!timerService.isStopwatchMode &&
                                   timerService.currentMode == TimerMode.focus &&
                                   timerService.remainingSeconds < timerService.focusDuration * 60))
@@ -300,51 +314,54 @@ class FocusPage extends StatelessWidget {
                               ],
                             )
                           else
-                            ElevatedButton(
-                              onPressed: () {
-                                timerService.startTimer();
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: isBreak ? Colors.tealAccent : Colors.white,
-                                foregroundColor: Colors.black,
-                                minimumSize: const Size(double.infinity, 60),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.play_arrow),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    timerService.isStopwatchMode 
-                                      ? 'Start Stopwatch' 
-                                      : (isBreak ? 'Start Break' : 'Start Focus'),
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
+                            Column(
+                              children: [
+                                ElevatedButton(
+                                  onPressed: () {
+                                    timerService.startTimer();
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: isBreak ? Colors.tealAccent : Colors.white,
+                                    foregroundColor: Colors.black,
+                                    minimumSize: const Size(double.infinity, 60),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
                                     ),
                                   ),
-                                ],
-                              ),
-                            ),
-                            
-                            // Skip Break Button
-                            if (isBreak && !timerService.isRunning)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 16),
-                                child: TextButton.icon(
-                                  onPressed: () {
-                                    timerService.skipBreak();
-                                  },
-                                  icon: const Icon(Icons.skip_next, color: Colors.white70),
-                                  label: const Text(
-                                    'Skip Break',
-                                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.play_arrow),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        timerService.isStopwatchMode 
+                                          ? 'Start Stopwatch' 
+                                          : (isBreak ? 'Start Break' : 'Start Focus'),
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ),
+                                // Skip Break Button (when paused/stopped)
+                                if (isBreak && !timerService.isRunning)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 16),
+                                    child: TextButton.icon(
+                                      onPressed: () {
+                                        timerService.skipBreak();
+                                      },
+                                      icon: const Icon(Icons.skip_next, color: Colors.white70),
+                                      label: const Text(
+                                        'Skip Break',
+                                        style: TextStyle(color: Colors.white70, fontSize: 16),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
                         ],
                       ),
                     ),

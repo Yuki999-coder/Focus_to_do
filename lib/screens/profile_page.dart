@@ -82,6 +82,22 @@ class ProfilePage extends StatelessWidget {
                 onTap: () => _showSoundPicker(context, timerService),
               ),
 
+              _buildSwitchTile(
+                icon: Icons.coffee,
+                title: 'Auto-start Break',
+                subtitle: 'Automatically start break timer',
+                value: timerService.autoStartBreak,
+                onChanged: (val) => timerService.setAutoStartBreak(val),
+              ),
+
+              _buildSwitchTile(
+                icon: Icons.play_arrow,
+                title: 'Auto-start Focus',
+                subtitle: 'Automatically start focus timer',
+                value: timerService.autoStartFocus,
+                onChanged: (val) => timerService.setAutoStartFocus(val),
+              ),
+
               _buildListTile(
                 icon: Icons.notifications,
                 title: 'Notifications',
@@ -123,6 +139,34 @@ class ProfilePage extends StatelessWidget {
           : null,
       trailing: const Icon(Icons.chevron_right, color: Colors.grey),
       onTap: onTap,
+    );
+  }
+
+  Widget _buildSwitchTile({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.grey[900],
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: Colors.white),
+      ),
+      title: Text(title, style: const TextStyle(color: Colors.white)),
+      subtitle: subtitle != null
+          ? Text(subtitle, style: const TextStyle(color: Colors.grey))
+          : null,
+      trailing: Switch(
+        value: value,
+        onChanged: onChanged,
+        activeColor: Colors.tealAccent,
+      ),
     );
   }
 

@@ -26,6 +26,8 @@ class TimerService extends ChangeNotifier {
   int _shortBreakDuration = 5;
   String _selectedSound = 'music/clock-tick.mp3';
   String _backgroundImage = 'assets/images/bg_universe.jpg';
+  bool _autoStartBreak = false;
+  bool _autoStartFocus = false;
   
   // Customization
   ClockStyle _clockStyle = const ClockStyle();
@@ -53,6 +55,8 @@ class TimerService extends ChangeNotifier {
   int get shortBreakDuration => _shortBreakDuration;
   String get selectedSound => _selectedSound;
   String get backgroundImage => _backgroundImage;
+  bool get autoStartBreak => _autoStartBreak;
+  bool get autoStartFocus => _autoStartFocus;
   ClockStyle get clockStyle => _clockStyle;
   TimerMode get currentMode => _currentMode;
   int get remainingSeconds => _isStopwatchMode ? _stopwatchSeconds : _remainingSeconds;
@@ -71,6 +75,8 @@ class TimerService extends ChangeNotifier {
     // Load Settings
     _backgroundImage = prefs.getString('backgroundImage') ?? 'assets/images/bg_universe.jpg';
     _selectedSound = prefs.getString('selectedSound') ?? 'music/clock-tick.mp3';
+    _autoStartBreak = prefs.getBool('autoStartBreak') ?? false;
+    _autoStartFocus = prefs.getBool('autoStartFocus') ?? false;
     
     final String? styleJson = prefs.getString('clockStyle');
     if (styleJson != null) {
@@ -230,6 +236,8 @@ class TimerService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('backgroundImage', _backgroundImage);
     await prefs.setString('selectedSound', _selectedSound);
+    await prefs.setBool('autoStartBreak', _autoStartBreak);
+    await prefs.setBool('autoStartFocus', _autoStartFocus);
     await prefs.setString('clockStyle', jsonEncode(_clockStyle.toJson()));
     final String encoded = jsonEncode(_tasks.map((t) => t.toJson()).toList());
     await prefs.setString('tasks', encoded);
@@ -288,6 +296,18 @@ class TimerService extends ChangeNotifier {
   void setBackgroundImage(String path) {
     _backgroundImage = path;
     _saveTasks(); // Save settings
+    notifyListeners();
+  }
+
+  void setAutoStartBreak(bool value) {
+    _autoStartBreak = value;
+    _saveTasks();
+    notifyListeners();
+  }
+
+  void setAutoStartFocus(bool value) {
+    _autoStartFocus = value;
+    _saveTasks();
     notifyListeners();
   }
 
@@ -527,10 +547,16 @@ class TimerService extends ChangeNotifier {
     if (_currentMode == TimerMode.focus) {
       _currentMode = TimerMode.breakMode;
       _remainingSeconds = _shortBreakDuration * 60;
+      if (_autoStartBreak) {
+        startTimer();
+      }
     } else {
       // Logic for when Break ends: Switch back to Focus (stopped)
       _currentMode = TimerMode.focus;
       _remainingSeconds = _focusDuration * 60;
+      if (_autoStartFocus) {
+        startTimer();
+      }
     }
     notifyListeners();
   }
