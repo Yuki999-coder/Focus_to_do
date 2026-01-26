@@ -306,54 +306,78 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
                               (!timerService.isStopwatchMode &&
                                   timerService.currentMode == TimerMode.focus &&
                                   timerService.remainingSeconds < timerService.focusDuration * 60))
-                            Row(
+                            Column(
                               children: [
-                                Expanded(
-                                  child: ElevatedButton(
-                                    onPressed: () {
-                                      timerService.stopTimer();
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white24,
-                                      foregroundColor: Colors.white,
-                                      minimumSize: const Size(double.infinity, 60),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(30),
-                                      ),
-                                    ),
-                                    child: const Text('Finish', style: TextStyle(fontWeight: FontWeight.bold)),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  flex: 2,
-                                  child: ElevatedButton(
-                                    onPressed: () {
-                                      timerService.startTimer();
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      foregroundColor: Colors.black,
-                                      minimumSize: const Size(double.infinity, 60),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(30),
-                                      ),
-                                    ),
-                                    child: const Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.play_arrow),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          'Resume',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
+                                Row(
+                                  children: [
+                                    // Restart Button (doesn't save to timeline)
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        onPressed: () {
+                                          timerService.restartTimer();
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.white12,
+                                          foregroundColor: Colors.white,
+                                          minimumSize: const Size(double.infinity, 60),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(30),
                                           ),
                                         ),
-                                      ],
+                                        child: const Icon(Icons.replay),
+                                      ),
                                     ),
-                                  ),
+                                    const SizedBox(width: 12),
+                                    // Finish Button (saves to timeline)
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        onPressed: () {
+                                          timerService.stopTimer();
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.white24,
+                                          foregroundColor: Colors.white,
+                                          minimumSize: const Size(double.infinity, 60),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(30),
+                                          ),
+                                        ),
+                                        child: const Text('Finish', style: TextStyle(fontWeight: FontWeight.bold)),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    // Resume Button
+                                    Expanded(
+                                      flex: 2,
+                                      child: ElevatedButton(
+                                        onPressed: () {
+                                          timerService.startTimer();
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.white,
+                                          foregroundColor: Colors.black,
+                                          minimumSize: const Size(double.infinity, 60),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(30),
+                                          ),
+                                        ),
+                                        child: const Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.play_arrow),
+                                            SizedBox(width: 8),
+                                            Text(
+                                              'Resume',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             )

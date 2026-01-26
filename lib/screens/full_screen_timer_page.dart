@@ -106,22 +106,33 @@ class _FullScreenTimerPageState extends State<FullScreenTimerPage> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Reset Button (formerly Stop)
+                    // Restart Button (doesn't save to timeline)
                     FloatingActionButton(
-                      heroTag: 'reset_timer',
+                      heroTag: 'restart_timer',
+                      backgroundColor: Colors.white12,
+                      foregroundColor: Colors.white,
+                      onPressed: () {
+                        timerService.restartTimer();
+                      },
+                      child: const Icon(Icons.replay),
+                    ),
+                    const SizedBox(width: 16),
+                    // Finish Button (saves to timeline)
+                    FloatingActionButton(
+                      heroTag: 'finish_timer',
                       backgroundColor: Colors.white24,
                       foregroundColor: Colors.white,
                       onPressed: () {
                         timerService.stopTimer();
                       },
-                      child: const Icon(Icons.replay),
+                      child: const Icon(Icons.stop),
                     ),
-                    const SizedBox(width: 20),
+                    const SizedBox(width: 16),
                     // Pause/Resume Button
                     FloatingActionButton(
                       heroTag: 'pause_resume',
-                      backgroundColor: Colors.white24,
-                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
                       onPressed: () {
                         if (isRunning) {
                           timerService.pauseTimer();

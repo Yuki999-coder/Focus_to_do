@@ -500,6 +500,19 @@ class TimerService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Restart timer without saving session to timeline
+  void restartTimer() {
+    _timer?.cancel();
+    _timer = null;
+    _isRunning = false;
+    _currentSessionStartTime = null; // Don't log this session
+    _resetToCurrentModeStart();
+    _timerStartTime = null;
+    _timerTargetTime = null;
+    _saveTimerState();
+    notifyListeners();
+  }
+
   void _logSession() {
     if (_currentSessionStartTime != null) {
       if (_currentMode == TimerMode.focus && _currentTask != null) {
