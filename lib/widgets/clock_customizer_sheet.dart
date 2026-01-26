@@ -54,29 +54,32 @@ class ClockCustomizerSheet extends StatelessWidget {
                     color: Colors.black54,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      FlipDigit(value: 1, size: 40, style: style),
-                      const SizedBox(width: 4),
-                      FlipDigit(value: 2, size: 40, style: style),
-                      
-                      if (style.showSeconds) ...[
-                        const SizedBox(width: 10),
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _dot(style.textColor),
-                            const SizedBox(height: 8),
-                            _dot(style.textColor),
-                          ],
-                        ),
-                        const SizedBox(width: 10),
-                        FlipDigit(value: 0, size: 40, style: style),
-                        const SizedBox(width: 4),
-                        FlipDigit(value: 0, size: 40, style: style),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        FlipDigit(value: 1, size: 40 * style.digitSize, style: style),
+                        SizedBox(width: style.digitSpacing * 0.4),
+                        FlipDigit(value: 2, size: 40 * style.digitSize, style: style),
+                        
+                        if (style.showSeconds) ...[
+                          SizedBox(width: style.digitSpacing),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _dot(style.textColor),
+                              SizedBox(height: style.digitSpacing * 0.8),
+                              _dot(style.textColor),
+                            ],
+                          ),
+                          SizedBox(width: style.digitSpacing),
+                          FlipDigit(value: 0, size: 40 * style.digitSize, style: style),
+                          SizedBox(width: style.digitSpacing * 0.4),
+                          FlipDigit(value: 0, size: 40 * style.digitSize, style: style),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -177,6 +180,34 @@ class ClockCustomizerSheet extends StatelessWidget {
                       inactiveColor: Colors.grey[800],
                       onChanged: (value) {
                         timerService.updateClockStyle(style.copyWith(borderRadius: value));
+                      },
+                    ),
+
+                    // Digit Size
+                    const SizedBox(height: 8),
+                    Text('Digit Size: ${(style.digitSize * 100).toInt()}%', style: const TextStyle(color: Colors.white70)),
+                    Slider(
+                      value: style.digitSize,
+                      min: 0.5,
+                      max: 2.0,
+                      activeColor: Colors.tealAccent,
+                      inactiveColor: Colors.grey[800],
+                      onChanged: (value) {
+                        timerService.updateClockStyle(style.copyWith(digitSize: value));
+                      },
+                    ),
+
+                    // Digit Spacing
+                    const SizedBox(height: 8),
+                    Text('Digit Spacing: ${style.digitSpacing.toInt()}', style: const TextStyle(color: Colors.white70)),
+                    Slider(
+                      value: style.digitSpacing,
+                      min: 2,
+                      max: 40,
+                      activeColor: Colors.tealAccent,
+                      inactiveColor: Colors.grey[800],
+                      onChanged: (value) {
+                        timerService.updateClockStyle(style.copyWith(digitSpacing: value));
                       },
                     ),
 

@@ -12,7 +12,7 @@ class TaskPage extends StatefulWidget {
 
 class _TaskPageState extends State<TaskPage> {
   String _selectedFilter = 'Today';
-  final List<String> _filters = ['Today', 'Tomorrow', 'This Week'];
+  final List<String> _filters = ['Today', 'Tomorrow', 'This Week', 'All'];
   bool _showCompleted = false;
 
   void _toggleTask(String id) {
@@ -24,7 +24,7 @@ class _TaskPageState extends State<TaskPage> {
       context: context,
       builder: (context) {
         String newTitle = task.title;
-        DateTime selectedDate = task.dueDate;
+        DateTime? selectedDate = task.dueDate;
         TimeOfDay? selectedTime = task.reminderTime;
 
         return StatefulBuilder(
@@ -50,17 +50,25 @@ class _TaskPageState extends State<TaskPage> {
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      // Date Picker
+                      // Date Picker (Optional)
                       TextButton.icon(
-                        icon: const Icon(Icons.calendar_today, color: Colors.white70, size: 18),
+                        icon: Icon(
+                          Icons.calendar_today, 
+                          color: selectedDate != null ? Colors.redAccent : Colors.white70, 
+                          size: 18
+                        ),
                         label: Text(
-                          "${selectedDate.day}/${selectedDate.month}",
-                          style: const TextStyle(color: Colors.white70),
+                          selectedDate != null 
+                            ? "${selectedDate!.day}/${selectedDate!.month}" 
+                            : "No Date",
+                          style: TextStyle(
+                            color: selectedDate != null ? Colors.redAccent : Colors.white70
+                          ),
                         ),
                         onPressed: () async {
                           final picked = await showDatePicker(
                             context: context,
-                            initialDate: selectedDate,
+                            initialDate: selectedDate ?? DateTime.now(),
                             firstDate: DateTime.now().subtract(const Duration(days: 365)),
                             lastDate: DateTime.now().add(const Duration(days: 365)),
                             builder: (context, child) {
@@ -81,6 +89,10 @@ class _TaskPageState extends State<TaskPage> {
                           if (picked != null) {
                             setState(() => selectedDate = picked);
                           }
+                        },
+                        onLongPress: () {
+                          // Long press to clear date
+                          setState(() => selectedDate = null);
                         },
                       ),
                       const Spacer(),
@@ -189,7 +201,7 @@ class _TaskPageState extends State<TaskPage> {
 
           String newTaskTitle = '';
 
-          DateTime selectedDate = DateTime.now();
+          DateTime? selectedDate;
 
           TimeOfDay? selectedTime;
 
@@ -239,17 +251,33 @@ class _TaskPageState extends State<TaskPage> {
 
                       children: [
 
-                        // Date Picker
+                        // Date Picker (Optional)
 
                         TextButton.icon(
 
-                          icon: const Icon(Icons.calendar_today, color: Colors.white70, size: 18),
+                          icon: Icon(
+
+                            Icons.calendar_today, 
+
+                            color: selectedDate != null ? Colors.redAccent : Colors.white70, 
+
+                            size: 18
+
+                          ),
 
                           label: Text(
 
-                            "${selectedDate.day}/${selectedDate.month}",
+                            selectedDate != null 
 
-                            style: const TextStyle(color: Colors.white70),
+                              ? "${selectedDate!.day}/${selectedDate!.month}" 
+
+                              : "No Date",
+
+                            style: TextStyle(
+
+                              color: selectedDate != null ? Colors.redAccent : Colors.white70
+
+                            ),
 
                           ),
 
@@ -259,7 +287,7 @@ class _TaskPageState extends State<TaskPage> {
 
                               context: context,
 
-                              initialDate: selectedDate,
+                              initialDate: selectedDate ?? DateTime.now(),
 
                               firstDate: DateTime.now().subtract(const Duration(days: 365)),
 
@@ -304,6 +332,14 @@ class _TaskPageState extends State<TaskPage> {
                               setState(() => selectedDate = picked);
 
                             }
+
+                          },
+
+                          onLongPress: () {
+
+                            // Long press to clear date
+
+                            setState(() => selectedDate = null);
 
                           },
 
@@ -483,7 +519,43 @@ class _TaskPageState extends State<TaskPage> {
 
   
 
-            // 2. Filter by Date
+            // 2. Filter by Date - "All" shows everything
+
+  
+
+            if (_selectedFilter == 'All') {
+
+  
+
+              return true;
+
+  
+
+            }
+
+  
+
+      
+
+  
+
+            // Tasks without date only show in "All" filter
+
+  
+
+            if (task.dueDate == null) {
+
+  
+
+              return false;
+
+  
+
+            }
+
+  
+
+      
 
   
 

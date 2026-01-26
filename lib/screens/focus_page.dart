@@ -4,8 +4,52 @@ import 'package:flutter/material.dart';
 import '../services/timer_service.dart';
 import 'full_screen_timer_page.dart';
 
-class FocusPage extends StatelessWidget {
+class FocusPage extends StatefulWidget {
   const FocusPage({super.key});
+
+  @override
+  State<FocusPage> createState() => _FocusPageState();
+}
+
+class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
+  bool _isInFullScreen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    _checkOrientation();
+  }
+
+  void _checkOrientation() {
+    if (!mounted || _isInFullScreen) return;
+    
+    final size = WidgetsBinding.instance.platformDispatcher.views.first.physicalSize;
+    final isLandscape = size.width > size.height;
+    
+    if (isLandscape) {
+      _isInFullScreen = true;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const FullScreenTimerPage(),
+        ),
+      ).then((_) {
+        _isInFullScreen = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

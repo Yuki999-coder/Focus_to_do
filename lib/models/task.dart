@@ -23,7 +23,7 @@ class Task {
   final String id;
   String title;
   bool isCompleted;
-  DateTime dueDate;
+  DateTime? dueDate;  // Now nullable - optional date
   TimeOfDay? reminderTime;
   int secondsSpent;
   List<FocusSession> sessions;
@@ -32,7 +32,7 @@ class Task {
     required this.id,
     required this.title,
     this.isCompleted = false,
-    required this.dueDate,
+    this.dueDate,  // Optional now
     this.reminderTime,
     this.secondsSpent = 0,
     List<FocusSession>? sessions,
@@ -42,7 +42,7 @@ class Task {
     'id': id,
     'title': title,
     'isCompleted': isCompleted,
-    'dueDate': dueDate.toIso8601String(),
+    'dueDate': dueDate?.toIso8601String(),
     'reminderTime': reminderTime != null
         ? '${reminderTime!.hour}:${reminderTime!.minute}'
         : null,
@@ -63,7 +63,7 @@ class Task {
       id: json['id'],
       title: json['title'],
       isCompleted: json['isCompleted'] ?? false,
-      dueDate: DateTime.parse(json['dueDate']),
+      dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate']) : null,
       reminderTime: reminder,
       secondsSpent: json['secondsSpent'] ?? 0,
       sessions: json['sessions'] != null

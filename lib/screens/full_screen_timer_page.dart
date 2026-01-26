@@ -143,43 +143,45 @@ class _FullScreenTimerPageState extends State<FullScreenTimerPage> {
 
   // Unified Layout: HH : MM : SS (Horizontal Row)
   Widget _buildTimerLayout(bool hasHours, int hT, int hO, int mT, int mO, int sT, int sO, ClockStyle style) {
-    // Adjust size slightly if we have hours to fit better
-    final double digitSize = hasHours ? 80 : 100;
+    // Base size adjusted by style.digitSize
+    final double baseSize = hasHours ? 80 : 100;
+    final double digitSize = baseSize * style.digitSize;
+    final double spacing = style.digitSpacing;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         if (hasHours) ...[
           FlipDigit(value: hT, size: digitSize, style: style),
-          const SizedBox(width: 6),
+          SizedBox(width: spacing * 0.6),
           FlipDigit(value: hO, size: digitSize, style: style),
           
-          _buildSeparator(digitSize, style.textColor),
+          _buildSeparator(digitSize, style.textColor, spacing),
         ],
 
         FlipDigit(value: mT, size: digitSize, style: style),
-        const SizedBox(width: 6),
+        SizedBox(width: spacing * 0.6),
         FlipDigit(value: mO, size: digitSize, style: style),
 
         if (style.showSeconds) ...[
-          _buildSeparator(digitSize, style.textColor),
+          _buildSeparator(digitSize, style.textColor, spacing),
 
           FlipDigit(value: sT, size: digitSize, style: style),
-          const SizedBox(width: 6),
+          SizedBox(width: spacing * 0.6),
           FlipDigit(value: sO, size: digitSize, style: style),
         ],
       ],
     );
   }
 
-  Widget _buildSeparator(double height, Color color) {
+  Widget _buildSeparator(double height, Color color, double spacing) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      padding: EdgeInsets.symmetric(horizontal: spacing),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           _dot(color),
-          const SizedBox(height: 16),
+          SizedBox(height: spacing * 1.6),
           _dot(color),
         ],
       ),

@@ -337,7 +337,7 @@ class TimerService extends ChangeNotifier {
     }
   }
 
-  void updateTask(String id, String newTitle, DateTime newDate, TimeOfDay? newReminder) {
+  void updateTask(String id, String newTitle, DateTime? newDate, TimeOfDay? newReminder) {
     final index = _tasks.indexWhere((t) => t.id == id);
     if (index != -1) {
       _tasks[index].title = newTitle;
